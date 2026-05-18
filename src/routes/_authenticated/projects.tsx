@@ -44,7 +44,13 @@ function ProjectsPage() {
   });
 
   const upsert = useMutation({
-    mutationFn: async (form: Partial<Project>) => {
+    mutationFn: async (form: {
+      name_ar: string;
+      name_en: string;
+      description: string | null;
+      color: string;
+      total_units: number;
+    }) => {
       if (editing) {
         const { error } = await supabase.from("projects").update(form).eq("id", editing.id);
         if (error) throw error;
