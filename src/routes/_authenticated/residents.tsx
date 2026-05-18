@@ -1,3 +1,12 @@
+type CreateResidentInput = {
+  unitNumber: string;
+  name: string;
+  password: string;
+  phone?: string;
+  projectId?: string | null;
+  unitPrice?: number | null;
+  unitLink?: string | null;
+};
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -40,7 +49,7 @@ function ResidentsPage() {
   });
 
   const create = useMutation({
-    mutationFn: (form: Parameters<typeof createResident>[0]["data"]) => createFn({ data: form }),
+    mutationFn: (form: CreateResidentInput) => createFn({ data: form }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["residents"] });
       toast.success("تم إنشاء الساكن");
