@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useProject } from "@/contexts/project-context";
+import { useAuthSession, useUserRoles } from "@/hooks/use-auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Building2, Users, Wrench, Receipt } from "lucide-react";
 
@@ -11,6 +12,18 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
 
 function DashboardPage() {
   const { projectId } = useProject();
+  const { user } = useAuthSession();
+  const { data: roles } = useUserRoles(user);
+  const isResident = !!roles?.length && roles.every((r) => r === "resident");
+
+  if (isResident) {
+    return (
+      <div className="space-y-4">
+        <h1 className="text-2xl font-bold">مرحباً بك</h1>
+        <p className="text-sm text-muted-foreground">استخدم القائمة لإدارة طلباتك وأقساطك.</p>
+      </div>
+    );
+  }
 
   const stats = useQuery({
     queryKey: ["dashboard-stats", projectId],
