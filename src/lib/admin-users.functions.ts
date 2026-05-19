@@ -239,3 +239,91 @@ export const decideInstallment = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+async function assertCallerHasRoles(userId: string, allowed: readonly string[]) {
+  const { data, error } = await supabaseAdmin
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", userId);
+  if (error) throw new Error(error.message);
+  const has = (data ?? []).some((r) => allowed.includes(r.role));
+  if (!has) throw new Error("غير مصرح");
+}
+
+/** Create installment (admin/manager/sales_manager) */
+export const createInstallment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z
+      .object({
+        resident_id: z.string().uuid(),
+        project_id: z.string().uuid(),
+        amount: z.number().positive().max(100000000),
+        description: z.string().max(2000).optional().default(""),
+        due_date: z.string().min(1),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await assertCallerHasRoles(context.userId, ["admin", "manager", "sales_manager"]);
+    const { error } = await supabaseAdmin.from("installments").insert(data);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+/** Update maintenance request status (staff only) */
+export const updateRequestStatus = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z
+      .object({
+        id: z.string().uuid(),
+        status: z.enum(["open", "in_progress", "completed"]),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await assertCallerHasRoles(context.userId, [...STAFF_ROLES]);
+    const { error } = await supabaseAdmin
+      .from("maintenance_requests")
+      .update({ status: data.status })
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+const ProjectInput = z.object({
+  name_ar: z.string().min(1).max(255),
+  name_en: z.string().min(1).max(255),
+  description: z.string().max(2000).nullable().optional(),
+  color: z.string().regex(/^#[0-9a-fA-F]{6}$/).default("#1d4ed8"),
+  total_units: z.number().int().min(0).max(100000).default(0),
+});
+
+/** Create/Update/Delete projects (admin/manager only) */
+export const upsertProject = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z.object({ id: z.string().uuid().optional(), values: ProjectInput }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await assertCallerHasRoles(context.userId, ["admin", "manager"]);
+    if (data.id) {
+      const { error } = await supabaseAdmin.from("projects").update(data.values).eq("id", data.id);
+      if (error) throw new Error(error.message);
+    } else {
+      const { error } = await supabaseAdmin.from("projects").insert(data.values);
+      if (error) throw new Error(error.message);
+    }
+    return { ok: true };
+  });
+
+export const deleteProject = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => z.object({ id: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    await assertCallerHasRoles(context.userId, ["admin", "manager"]);
+    const { error } = await supabaseAdmin.from("projects").delete().eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
