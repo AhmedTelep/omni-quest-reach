@@ -18,6 +18,7 @@ import { Route as AuthenticatedResidentsRouteImport } from './routes/_authentica
 import { Route as AuthenticatedRequestsRouteImport } from './routes/_authenticated/requests'
 import { Route as AuthenticatedProjectsRouteImport } from './routes/_authenticated/projects'
 import { Route as AuthenticatedInstallmentsRouteImport } from './routes/_authenticated/installments'
+import { Route as AuthenticatedEmployeesRouteImport } from './routes/_authenticated/employees'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 
 const SetupRoute = SetupRouteImport.update({
@@ -65,6 +66,11 @@ const AuthenticatedInstallmentsRoute =
     path: '/installments',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedEmployeesRoute = AuthenticatedEmployeesRouteImport.update({
+  id: '/employees',
+  path: '/employees',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -76,6 +82,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/setup': typeof SetupRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/employees': typeof AuthenticatedEmployeesRoute
   '/installments': typeof AuthenticatedInstallmentsRoute
   '/projects': typeof AuthenticatedProjectsRoute
   '/requests': typeof AuthenticatedRequestsRoute
@@ -87,6 +94,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/setup': typeof SetupRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/employees': typeof AuthenticatedEmployeesRoute
   '/installments': typeof AuthenticatedInstallmentsRoute
   '/projects': typeof AuthenticatedProjectsRoute
   '/requests': typeof AuthenticatedRequestsRoute
@@ -100,6 +108,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/setup': typeof SetupRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/employees': typeof AuthenticatedEmployeesRoute
   '/_authenticated/installments': typeof AuthenticatedInstallmentsRoute
   '/_authenticated/projects': typeof AuthenticatedProjectsRoute
   '/_authenticated/requests': typeof AuthenticatedRequestsRoute
@@ -113,6 +122,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/setup'
     | '/dashboard'
+    | '/employees'
     | '/installments'
     | '/projects'
     | '/requests'
@@ -124,6 +134,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/setup'
     | '/dashboard'
+    | '/employees'
     | '/installments'
     | '/projects'
     | '/requests'
@@ -136,6 +147,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/setup'
     | '/_authenticated/dashboard'
+    | '/_authenticated/employees'
     | '/_authenticated/installments'
     | '/_authenticated/projects'
     | '/_authenticated/requests'
@@ -215,6 +227,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedInstallmentsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/employees': {
+      id: '/_authenticated/employees'
+      path: '/employees'
+      fullPath: '/employees'
+      preLoaderRoute: typeof AuthenticatedEmployeesRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/dashboard': {
       id: '/_authenticated/dashboard'
       path: '/dashboard'
@@ -227,6 +246,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedEmployeesRoute: typeof AuthenticatedEmployeesRoute
   AuthenticatedInstallmentsRoute: typeof AuthenticatedInstallmentsRoute
   AuthenticatedProjectsRoute: typeof AuthenticatedProjectsRoute
   AuthenticatedRequestsRoute: typeof AuthenticatedRequestsRoute
@@ -236,6 +256,7 @@ interface AuthenticatedRouteChildren {
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedEmployeesRoute: AuthenticatedEmployeesRoute,
   AuthenticatedInstallmentsRoute: AuthenticatedInstallmentsRoute,
   AuthenticatedProjectsRoute: AuthenticatedProjectsRoute,
   AuthenticatedRequestsRoute: AuthenticatedRequestsRoute,
