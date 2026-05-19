@@ -13,6 +13,8 @@ import {
   UserCog,
   LogOut,
   Menu,
+  ClipboardList,
+  Wallet,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -36,6 +38,8 @@ const NAV: NavItem[] = [
   { to: "/installments", label: "الأقساط", icon: Receipt, roles: ["admin", "manager", "sales_manager", "accountant"] },
   { to: "/services", label: "أنواع الخدمات", icon: SettingsIcon, roles: ["admin", "manager"] },
   { to: "/employees", label: "الموظفين", icon: UserCog, roles: ["admin", "manager"] },
+  { to: "/my-requests", label: "طلباتي", icon: ClipboardList, roles: ["resident"] },
+  { to: "/my-installments", label: "أقساطي", icon: Wallet, roles: ["resident"] },
 ];
 
 export function AppShell() {
