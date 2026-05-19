@@ -70,7 +70,7 @@ export function AppShell() {
   const SidebarBody = (
     <div className="flex h-full flex-col">
       <div className="border-b p-4">
-        <h1 className="text-lg font-bold">Telep</h1>
+        <h1 className="text-lg font-bold">X</h1>
         <p className="mt-1 truncate text-xs text-muted-foreground">{user?.email}</p>
       </div>
 
@@ -141,7 +141,7 @@ export function AppShell() {
               {SidebarBody}
             </SheetContent>
           </Sheet>
-          <h1 className="text-base font-semibold">Telep</h1>
+          <h1 className="text-base font-semibold">X</h1>
           <div className="w-9" />
         </header>
 
