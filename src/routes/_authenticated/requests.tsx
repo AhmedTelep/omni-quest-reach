@@ -1,6 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
+import { updateRequestStatus } from "@/lib/admin-users.functions";
 import { useProject } from "@/contexts/project-context";
 import { useEffect } from "react";
 import { toast } from "sonner";
@@ -15,6 +17,7 @@ const STATUS_LABEL: Record<string, string> = { open: "جديد", in_progress: "�
 function RequestsPage() {
   const qc = useQueryClient();
   const { projectId } = useProject();
+  const updateStatusFn = useServerFn(updateRequestStatus);
 
   const { data } = useQuery({
     queryKey: ["requests", projectId],
@@ -35,10 +38,8 @@ function RequestsPage() {
   }, [qc]);
 
   const update = useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: "open" | "in_progress" | "completed" }) => {
-      const { error } = await supabase.from("maintenance_requests").update({ status }).eq("id", id);
-      if (error) throw error;
-    },
+    mutationFn: ({ id, status }: { id: string; status: "open" | "in_progress" | "completed" }) =>
+      updateStatusFn({ data: { id, status } }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["requests"] }); toast.success("تم التحديث"); },
     onError: (e: Error) => toast.error(e.message),
   });

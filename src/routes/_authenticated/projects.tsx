@@ -1,6 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
+import { upsertProject, deleteProject } from "@/lib/admin-users.functions";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -33,6 +35,8 @@ function ProjectsPage() {
   const qc = useQueryClient();
   const [editing, setEditing] = useState<Project | null>(null);
   const [open, setOpen] = useState(false);
+  const upsertFn = useServerFn(upsertProject);
+  const deleteFn = useServerFn(deleteProject);
 
   const { data: projects } = useQuery({
     queryKey: ["projects"],
@@ -44,21 +48,13 @@ function ProjectsPage() {
   });
 
   const upsert = useMutation({
-    mutationFn: async (form: {
+    mutationFn: (form: {
       name_ar: string;
       name_en: string;
       description: string | null;
       color: string;
       total_units: number;
-    }) => {
-      if (editing) {
-        const { error } = await supabase.from("projects").update(form).eq("id", editing.id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.from("projects").insert(form);
-        if (error) throw error;
-      }
-    },
+    }) => upsertFn({ data: { id: editing?.id, values: form } }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["projects"] });
       toast.success(editing ? "تم التعديل" : "تم الإنشاء");
@@ -69,10 +65,7 @@ function ProjectsPage() {
   });
 
   const del = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("projects").delete().eq("id", id);
-      if (error) throw error;
-    },
+    mutationFn: (id: string) => deleteFn({ data: { id } }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["projects"] });
       toast.success("تم الحذف");
