@@ -76,9 +76,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "نظام إدارة الصيانة" },
+      { title: "Telep — نظام إدارة الصيانة" },
       { name: "description", content: "لوحة تحكم إدارة الصيانة في التجمعات السكنية" },
-      { property: "og:title", content: "نظام إدارة الصيانة" },
+      { property: "og:title", content: "Telep — نظام إدارة الصيانة" },
       { property: "og:description", content: "لوحة تحكم إدارة الصيانة في التجمعات السكنية" },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
