@@ -1,10 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { useProject } from "@/contexts/project-context";
 import { useAuthSession, useUserRoles } from "@/hooks/use-auth";
-import { uploadFile, signedUrl } from "@/lib/storage";
+import { signedUrl } from "@/lib/storage";
+import { decideInstallment } from "@/lib/admin-users.functions";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,6 +38,7 @@ function InstallmentsPage() {
   const isAdminLike = !!roles?.some((r) => ["admin", "manager", "sales_manager"].includes(r));
   const isAccountant = !!roles?.some((r) => r === "accountant");
   const [open, setOpen] = useState(false);
+  const decide = useServerFn(decideInstallment);
 
   const { data: residents } = useQuery({
     queryKey: ["residents-min", projectId],
@@ -82,13 +85,8 @@ function InstallmentsPage() {
   });
 
   const confirmIns = useMutation({
-    mutationFn: async ({ id, approve, reason }: { id: string; approve: boolean; reason?: string }) => {
-      const update = approve
-        ? { payment_status: "confirmed" as const, confirmed_at: new Date().toISOString(), confirmed_by_name: user?.email ?? null, rejection_reason: null }
-        : { payment_status: "rejected" as const, rejection_reason: reason ?? "غير محدد" };
-      const { error } = await supabase.from("installments").update(update).eq("id", id);
-      if (error) throw error;
-    },
+    mutationFn: async ({ id, approve, reason }: { id: string; approve: boolean; reason?: string }) =>
+      decide({ data: { installmentId: id, approve, reason } }),
     onSuccess: () => { toast.success("تم"); qc.invalidateQueries({ queryKey: ["installments"] }); },
     onError: (e: Error) => toast.error(e.message),
   });
