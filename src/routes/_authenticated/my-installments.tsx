@@ -46,7 +46,9 @@ function MyInstallmentsPage() {
 
   const upload = useMutation({
     mutationFn: async ({ id, file, paid_by_name }: { id: string; file: File; paid_by_name: string }) => {
-      const path = await uploadFile("receipts", file, resident!.id);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("الجلسة منتهية");
+      const path = await uploadFile("receipts", file, user.id);
       const { error } = await supabase.from("installments").update({
         receipt_url: path,
         paid_at: new Date().toISOString(),

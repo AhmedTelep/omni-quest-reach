@@ -55,8 +55,10 @@ function MyRequestsPage() {
   const create = useMutation({
     mutationFn: async (form: { service_id: string; service_type: string; notes: string; image?: File | null }) => {
       if (!resident) throw new Error("لم يتم العثور على بياناتك");
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("الجلسة منتهية");
       let image_url: string | null = null;
-      if (form.image) image_url = await uploadFile("request-images", form.image, resident.id);
+      if (form.image) image_url = await uploadFile("request-images", form.image, user.id);
       const { error } = await supabase.from("maintenance_requests").insert({
         resident_id: resident.id,
         project_id: resident.project_id,
