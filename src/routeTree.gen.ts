@@ -18,6 +18,7 @@ import { Route as AuthenticatedResidentsRouteImport } from './routes/_authentica
 import { Route as AuthenticatedRequestsRouteImport } from './routes/_authenticated/requests'
 import { Route as AuthenticatedProjectsRouteImport } from './routes/_authenticated/projects'
 import { Route as AuthenticatedMyRequestsRouteImport } from './routes/_authenticated/my-requests'
+import { Route as AuthenticatedMyInstallmentsRouteImport } from './routes/_authenticated/my-installments'
 import { Route as AuthenticatedInstallmentsRouteImport } from './routes/_authenticated/installments'
 import { Route as AuthenticatedEmployeesRouteImport } from './routes/_authenticated/employees'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
@@ -66,6 +67,12 @@ const AuthenticatedMyRequestsRoute = AuthenticatedMyRequestsRouteImport.update({
   path: '/my-requests',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedMyInstallmentsRoute =
+  AuthenticatedMyInstallmentsRouteImport.update({
+    id: '/my-installments',
+    path: '/my-installments',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedInstallmentsRoute =
   AuthenticatedInstallmentsRouteImport.update({
     id: '/installments',
@@ -90,6 +97,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/employees': typeof AuthenticatedEmployeesRoute
   '/installments': typeof AuthenticatedInstallmentsRoute
+  '/my-installments': typeof AuthenticatedMyInstallmentsRoute
   '/my-requests': typeof AuthenticatedMyRequestsRoute
   '/projects': typeof AuthenticatedProjectsRoute
   '/requests': typeof AuthenticatedRequestsRoute
@@ -103,6 +111,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/employees': typeof AuthenticatedEmployeesRoute
   '/installments': typeof AuthenticatedInstallmentsRoute
+  '/my-installments': typeof AuthenticatedMyInstallmentsRoute
   '/my-requests': typeof AuthenticatedMyRequestsRoute
   '/projects': typeof AuthenticatedProjectsRoute
   '/requests': typeof AuthenticatedRequestsRoute
@@ -118,6 +127,7 @@ export interface FileRoutesById {
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/employees': typeof AuthenticatedEmployeesRoute
   '/_authenticated/installments': typeof AuthenticatedInstallmentsRoute
+  '/_authenticated/my-installments': typeof AuthenticatedMyInstallmentsRoute
   '/_authenticated/my-requests': typeof AuthenticatedMyRequestsRoute
   '/_authenticated/projects': typeof AuthenticatedProjectsRoute
   '/_authenticated/requests': typeof AuthenticatedRequestsRoute
@@ -133,6 +143,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/employees'
     | '/installments'
+    | '/my-installments'
     | '/my-requests'
     | '/projects'
     | '/requests'
@@ -146,6 +157,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/employees'
     | '/installments'
+    | '/my-installments'
     | '/my-requests'
     | '/projects'
     | '/requests'
@@ -160,6 +172,7 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard'
     | '/_authenticated/employees'
     | '/_authenticated/installments'
+    | '/_authenticated/my-installments'
     | '/_authenticated/my-requests'
     | '/_authenticated/projects'
     | '/_authenticated/requests'
@@ -239,6 +252,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMyRequestsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/my-installments': {
+      id: '/_authenticated/my-installments'
+      path: '/my-installments'
+      fullPath: '/my-installments'
+      preLoaderRoute: typeof AuthenticatedMyInstallmentsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/installments': {
       id: '/_authenticated/installments'
       path: '/installments'
@@ -267,6 +287,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedEmployeesRoute: typeof AuthenticatedEmployeesRoute
   AuthenticatedInstallmentsRoute: typeof AuthenticatedInstallmentsRoute
+  AuthenticatedMyInstallmentsRoute: typeof AuthenticatedMyInstallmentsRoute
   AuthenticatedMyRequestsRoute: typeof AuthenticatedMyRequestsRoute
   AuthenticatedProjectsRoute: typeof AuthenticatedProjectsRoute
   AuthenticatedRequestsRoute: typeof AuthenticatedRequestsRoute
@@ -278,6 +299,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedEmployeesRoute: AuthenticatedEmployeesRoute,
   AuthenticatedInstallmentsRoute: AuthenticatedInstallmentsRoute,
+  AuthenticatedMyInstallmentsRoute: AuthenticatedMyInstallmentsRoute,
   AuthenticatedMyRequestsRoute: AuthenticatedMyRequestsRoute,
   AuthenticatedProjectsRoute: AuthenticatedProjectsRoute,
   AuthenticatedRequestsRoute: AuthenticatedRequestsRoute,
