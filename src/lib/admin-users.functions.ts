@@ -191,3 +191,51 @@ export const deleteUser = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+/** Confirm or reject an installment payment (admin/manager/accountant only) */
+export const decideInstallment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z
+      .object({
+        installmentId: z.string().uuid(),
+        approve: z.boolean(),
+        reason: z.string().max(500).optional(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: roles } = await supabaseAdmin
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", context.userId);
+    const rolesList = (roles ?? []).map((r) => r.role);
+    if (!rolesList.some((r) => ["admin", "manager", "accountant"].includes(r))) {
+      throw new Error("غير مصرح بتأكيد/رفض الأقساط");
+    }
+
+    const { data: profile } = await supabaseAdmin
+      .from("profiles")
+      .select("full_name")
+      .eq("id", context.userId)
+      .maybeSingle();
+
+    const update = data.approve
+      ? {
+          payment_status: "confirmed" as const,
+          confirmed_at: new Date().toISOString(),
+          confirmed_by_name: profile?.full_name ?? null,
+          rejection_reason: null,
+        }
+      : {
+          payment_status: "rejected" as const,
+          rejection_reason: data.reason?.trim() || "غير محدد",
+        };
+
+    const { error } = await supabaseAdmin
+      .from("installments")
+      .update(update)
+      .eq("id", data.installmentId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
