@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useProject } from "@/contexts/project-context";
 import { useAuthSession, useUserRoles } from "@/hooks/use-auth";
 import { signedUrl } from "@/lib/storage";
-import { decideInstallment } from "@/lib/admin-users.functions";
+import { decideInstallment, createInstallment } from "@/lib/admin-users.functions";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,6 +39,7 @@ function InstallmentsPage() {
   const isAccountant = !!roles?.some((r) => r === "accountant");
   const [open, setOpen] = useState(false);
   const decide = useServerFn(decideInstallment);
+  const createFn = useServerFn(createInstallment);
 
   const { data: residents } = useQuery({
     queryKey: ["residents-min", projectId],
@@ -76,10 +77,8 @@ function InstallmentsPage() {
   }, [qc]);
 
   const create = useMutation({
-    mutationFn: async (form: { resident_id: string; project_id: string; amount: number; description: string; due_date: string }) => {
-      const { error } = await supabase.from("installments").insert(form);
-      if (error) throw error;
-    },
+    mutationFn: (form: { resident_id: string; project_id: string; amount: number; description: string; due_date: string }) =>
+      createFn({ data: form }),
     onSuccess: () => { toast.success("تم إنشاء القسط"); setOpen(false); qc.invalidateQueries({ queryKey: ["installments"] }); },
     onError: (e: Error) => toast.error(e.message),
   });
