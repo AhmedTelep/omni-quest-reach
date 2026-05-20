@@ -90,6 +90,22 @@ function UnitsPage() {
     },
   });
 
+  // Residents in the current scope — used to show occupant & block deletion
+  const { data: residentsScope } = useQuery({
+    queryKey: ["residents-scope-for-units", projectId],
+    queryFn: async () => {
+      let q = supabase.from("residents").select("id,name,unit_number,project_id");
+      if (projectId) q = q.eq("project_id", projectId);
+      const { data } = await q;
+      return data ?? [];
+    },
+  });
+
+  const residentByUnit = (projId: string, num: string) =>
+    (residentsScope ?? []).find(
+      (r: any) => r.project_id === projId && String(r.unit_number) === String(num),
+    );
+
   // Units of the project selected INSIDE the form — used for accurate duplicate check
   const { data: formProjectUnits } = useQuery({
     queryKey: ["units-for-form", formProjectId],
@@ -307,12 +323,14 @@ function UnitsPage() {
                 <th className="p-3">المساحة</th>
                 <th className="p-3">السعر</th>
                 <th className="p-3">الحالة</th>
+                <th className="p-3">الساكن</th>
                 <th className="p-3"></th>
               </tr>
             </thead>
             <tbody>
               {units?.map((u: any) => {
                 const s = STATUS[u.status] ?? { label: u.status, variant: "outline" as const };
+                const occupant = residentByUnit(u.project_id, u.unit_number);
                 return (
                   <tr key={u.id} className="border-b">
                     <td className="p-3 font-mono">{u.unit_number}</td>
@@ -323,6 +341,7 @@ function UnitsPage() {
                     <td className="p-3">
                       <Badge variant={s.variant}>{s.label}</Badge>
                     </td>
+                    <td className="p-3 text-muted-foreground">{occupant?.name ?? "—"}</td>
                     <td className="p-3 text-left">
                       <div className="flex justify-end gap-1">
                         <Button
@@ -338,7 +357,13 @@ function UnitsPage() {
                         <Button
                           size="icon"
                           variant="ghost"
-                          onClick={() => confirm("حذف الوحدة؟") && remove.mutate(u.id)}
+                          onClick={() => {
+                            if (occupant) {
+                              toast.error(`لا يمكن حذف الوحدة — مرتبطة بالساكن: ${occupant.name}`);
+                              return;
+                            }
+                            if (confirm("حذف الوحدة؟")) remove.mutate(u.id);
+                          }}
                         >
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
@@ -349,7 +374,7 @@ function UnitsPage() {
               })}
               {!units?.length && (
                 <tr>
-                  <td colSpan={7} className="p-8 text-center text-muted-foreground">
+                  <td colSpan={8} className="p-8 text-center text-muted-foreground">
                     لا توجد وحدات
                   </td>
                 </tr>
