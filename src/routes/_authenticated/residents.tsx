@@ -223,7 +223,7 @@ function ResidentsPage() {
                 <td className="p-3 text-muted-foreground">{r.phone ?? "—"}</td>
                 <td className="p-3 text-left">
                   {r.user_id && (
-                    <Button size="icon" variant="ghost" onClick={() => confirm("حذف الساكن؟") && remove.mutate(r.user_id)}>
+                    <Button size="icon" variant="ghost" onClick={() => confirm("حذف الساكن؟") && remove.mutate({ userId: r.user_id, projectId: r.project_id, unitNumber: r.unit_number })}>
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
                   )}
