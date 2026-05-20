@@ -86,8 +86,18 @@ function ResidentsPage() {
 
   const create = useMutation({
     mutationFn: (form: CreateResidentInput) => createFn({ data: form }),
-    onSuccess: () => {
+    onSuccess: async (_data, vars) => {
+      // Mark the assigned unit as sold
+      if (vars.projectId && vars.unitNumber) {
+        await supabase
+          .from("units")
+          .update({ status: "sold" })
+          .eq("project_id", vars.projectId)
+          .eq("unit_number", vars.unitNumber);
+      }
       qc.invalidateQueries({ queryKey: ["residents"] });
+      qc.invalidateQueries({ queryKey: ["units"] });
+      qc.invalidateQueries({ queryKey: ["units-for-project"] });
       toast.success("تم إنشاء الساكن");
       setOpen(false);
       setFormProjectId("");
@@ -97,9 +107,20 @@ function ResidentsPage() {
   });
 
   const remove = useMutation({
-    mutationFn: (userId: string) => deleteFn({ data: { userId } }),
+    mutationFn: async (r: { userId: string; projectId?: string | null; unitNumber?: string | null }) => {
+      await deleteFn({ data: { userId: r.userId } });
+      // Free the unit
+      if (r.projectId && r.unitNumber) {
+        await supabase
+          .from("units")
+          .update({ status: "available" })
+          .eq("project_id", r.projectId)
+          .eq("unit_number", r.unitNumber);
+      }
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["residents"] });
+      qc.invalidateQueries({ queryKey: ["units"] });
       toast.success("تم الحذف");
     },
     onError: (e: Error) => toast.error(e.message),
@@ -151,7 +172,12 @@ function ResidentsPage() {
                 <Label>رقم الوحدة</Label>
                 <Select
                   value={formUnitNumber}
-                  onValueChange={setFormUnitNumber}
+                  onValueChange={(v) => {
+                    setFormUnitNumber(v);
+                    const u = availableUnits.find((x: any) => x.unit_number === v);
+                    const priceInput = document.querySelector<HTMLInputElement>('input[name="price"]');
+                    if (priceInput && u?.price != null) priceInput.value = String(u.price);
+                  }}
                   disabled={!formProjectId}
                 >
                   <SelectTrigger>
