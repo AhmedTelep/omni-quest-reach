@@ -119,7 +119,14 @@ function UnitsPage() {
       setOpen(false);
       setEditing(null);
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: any) => {
+      const msg = String(e?.message ?? "");
+      if (msg.includes("units_project_id_unit_number_key") || e?.code === "23505") {
+        toast.error("رقم الوحدة موجود مسبقاً في هذا المشروع");
+      } else {
+        toast.error(msg || "حدث خطأ");
+      }
+    },
   });
 
   const remove = useMutation({
