@@ -60,7 +60,7 @@ function ResidentsPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("units")
-        .select("id,unit_number,status")
+        .select("id,unit_number,status,price")
         .eq("project_id", formProjectId);
       if (error) throw error;
       const collator = new Intl.Collator("ar", { numeric: true, sensitivity: "base" });
