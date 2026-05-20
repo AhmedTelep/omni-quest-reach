@@ -178,6 +178,16 @@ function UnitsPage() {
                   return;
                 }
                 const unit_number = `${unitLetter} ${unitNumber}`;
+                const dup = (units ?? []).some(
+                  (u: any) =>
+                    u.project_id === project_id &&
+                    String(u.unit_number) === unit_number &&
+                    (!editing || u.id !== editing.id),
+                );
+                if (dup) {
+                  toast.error("رقم الوحدة موجود مسبقاً في هذا المشروع");
+                  return;
+                }
                 upsert.mutate({
                   project_id,
                   unit_number,
