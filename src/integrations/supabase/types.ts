@@ -323,6 +323,45 @@ export type Database = {
         }
         Relationships: []
       }
+      units: {
+        Row: {
+          area: number | null
+          created_at: string
+          floor: string | null
+          id: string
+          notes: string | null
+          price: number | null
+          project_id: string
+          status: string
+          unit_number: string
+          updated_at: string
+        }
+        Insert: {
+          area?: number | null
+          created_at?: string
+          floor?: string | null
+          id?: string
+          notes?: string | null
+          price?: number | null
+          project_id: string
+          status?: string
+          unit_number: string
+          updated_at?: string
+        }
+        Update: {
+          area?: number | null
+          created_at?: string
+          floor?: string | null
+          id?: string
+          notes?: string | null
+          price?: number | null
+          project_id?: string
+          status?: string
+          unit_number?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
