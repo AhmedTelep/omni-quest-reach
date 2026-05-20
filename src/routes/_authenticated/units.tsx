@@ -60,14 +60,16 @@ function UnitsPage() {
   const [editing, setEditing] = useState<Unit | null>(null);
   const [unitLetter, setUnitLetter] = useState("A");
   const [unitNumber, setUnitNumber] = useState("01");
+  const [formProjectId, setFormProjectId] = useState<string>("");
 
   useEffect(() => {
     if (open) {
       const s = splitUnit(editing?.unit_number);
       setUnitLetter(s.letter);
       setUnitNumber(s.number);
+      setFormProjectId(editing?.project_id ?? projectId ?? "");
     }
-  }, [open, editing]);
+  }, [open, editing, projectId]);
 
   const { data: projects } = useQuery({
     queryKey: ["projects"],
@@ -85,6 +87,20 @@ function UnitsPage() {
       return (data ?? []).slice().sort((a: any, b: any) =>
         collator.compare(String(a.unit_number ?? ""), String(b.unit_number ?? "")),
       );
+    },
+  });
+
+  // Units of the project selected INSIDE the form — used for accurate duplicate check
+  const { data: formProjectUnits } = useQuery({
+    queryKey: ["units-for-form", formProjectId],
+    enabled: !!formProjectId && open,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("units")
+        .select("id, unit_number")
+        .eq("project_id", formProjectId);
+      if (error) throw error;
+      return data ?? [];
     },
   });
 
@@ -172,15 +188,14 @@ function UnitsPage() {
               onSubmit={(e) => {
                 e.preventDefault();
                 const fd = new FormData(e.currentTarget);
-                const project_id = String(fd.get("project") ?? "");
+                const project_id = formProjectId || String(fd.get("project") ?? "");
                 if (!project_id) {
                   toast.error("اختر المشروع");
                   return;
                 }
                 const unit_number = `${unitLetter} ${unitNumber}`;
-                const dup = (units ?? []).some(
+                const dup = (formProjectUnits ?? []).some(
                   (u: any) =>
-                    u.project_id === project_id &&
                     String(u.unit_number) === unit_number &&
                     (!editing || u.id !== editing.id),
                 );
@@ -201,7 +216,11 @@ function UnitsPage() {
             >
               <div className="space-y-1.5">
                 <Label>المشروع</Label>
-                <Select name="project" defaultValue={editing?.project_id ?? projectId ?? undefined}>
+                <Select
+                  name="project"
+                  value={formProjectId}
+                  onValueChange={setFormProjectId}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="اختر مشروع" />
                   </SelectTrigger>
