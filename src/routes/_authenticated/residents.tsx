@@ -29,6 +29,8 @@ function ResidentsPage() {
   const qc = useQueryClient();
   const { projectId } = useProject();
   const [open, setOpen] = useState(false);
+  const [formProjectId, setFormProjectId] = useState<string>("");
+  const [formUnitNumber, setFormUnitNumber] = useState<string>("");
   const createFn = useServerFn(createResident);
   const deleteFn = useServerFn(deleteUser);
 
@@ -51,12 +53,45 @@ function ResidentsPage() {
     },
   });
 
+  // Units of the selected project + which numbers are already taken by residents
+  const { data: projectUnits } = useQuery({
+    queryKey: ["units-for-project", formProjectId],
+    enabled: !!formProjectId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("units")
+        .select("id,unit_number,status")
+        .eq("project_id", formProjectId);
+      if (error) throw error;
+      const collator = new Intl.Collator("ar", { numeric: true, sensitivity: "base" });
+      return (data ?? []).slice().sort((a, b) =>
+        collator.compare(String(a.unit_number), String(b.unit_number)),
+      );
+    },
+  });
+
+  const takenUnits = new Set(
+    (residents ?? [])
+      .filter((r: any) => r.project_id === formProjectId)
+      .map((r: any) => String(r.unit_number)),
+  );
+
+  const availableUnits = (projectUnits ?? []).filter(
+    (u: any) => !takenUnits.has(String(u.unit_number)),
+  );
+
+  // Reset unit when project changes / dialog opens
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // (intentional — we want to clear selection on project change)
+
   const create = useMutation({
     mutationFn: (form: CreateResidentInput) => createFn({ data: form }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["residents"] });
       toast.success("تم إنشاء الساكن");
       setOpen(false);
+      setFormProjectId("");
+      setFormUnitNumber("");
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -88,29 +123,55 @@ function ResidentsPage() {
               onSubmit={(e) => {
                 e.preventDefault();
                 const fd = new FormData(e.currentTarget);
+                if (!formProjectId) { toast.error("اختر المشروع أولاً"); return; }
+                if (!formUnitNumber) { toast.error("اختر رقم الوحدة"); return; }
                 create.mutate({
-                  unitNumber: String(fd.get("unit")),
+                  unitNumber: formUnitNumber,
                   name: String(fd.get("name")),
                   password: String(fd.get("password")),
                   phone: String(fd.get("phone") ?? "") || undefined,
-                  projectId: (String(fd.get("project")) || null) as string | null,
+                  projectId: formProjectId,
                   unitPrice: fd.get("price") ? Number(fd.get("price")) : null,
                 });
               }}
             >
-              <div className="space-y-1.5"><Label>رقم الوحدة</Label><Input name="unit" required /></div>
-              <div className="space-y-1.5"><Label>الاسم</Label><Input name="name" required /></div>
-              <div className="space-y-1.5"><Label>الهاتف</Label><Input name="phone" /></div>
-              <div className="space-y-1.5"><Label>سعر الوحدة</Label><Input name="price" type="number" step="0.01" /></div>
               <div className="space-y-1.5">
                 <Label>المشروع</Label>
-                <Select name="project">
+                <Select
+                  value={formProjectId}
+                  onValueChange={(v) => { setFormProjectId(v); setFormUnitNumber(""); }}
+                >
                   <SelectTrigger><SelectValue placeholder="اختر مشروع" /></SelectTrigger>
                   <SelectContent>
                     {projects?.map((p: any) => <SelectItem key={p.id} value={p.id}>{p.name_ar}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
+              <div className="space-y-1.5">
+                <Label>رقم الوحدة</Label>
+                <Select
+                  value={formUnitNumber}
+                  onValueChange={setFormUnitNumber}
+                  disabled={!formProjectId}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={formProjectId ? "اختر وحدة متاحة" : "اختر مشروع أولاً"} />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-64">
+                    {availableUnits.map((u: any) => (
+                      <SelectItem key={u.id} value={u.unit_number}>{u.unit_number}</SelectItem>
+                    ))}
+                    {formProjectId && availableUnits.length === 0 && (
+                      <div className="p-3 text-center text-xs text-muted-foreground">
+                        لا توجد وحدات متاحة — أضفها من صفحة الوحدات
+                      </div>
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5"><Label>الاسم</Label><Input name="name" required /></div>
+              <div className="space-y-1.5"><Label>الهاتف</Label><Input name="phone" /></div>
+              <div className="space-y-1.5"><Label>سعر الوحدة</Label><Input name="price" type="number" step="0.01" /></div>
               <div className="space-y-1.5"><Label>كلمة المرور</Label><Input name="password" type="password" minLength={6} required /></div>
               <DialogFooter><Button type="submit" disabled={create.isPending}>{create.isPending ? "جاري…" : "حفظ"}</Button></DialogFooter>
             </form>
