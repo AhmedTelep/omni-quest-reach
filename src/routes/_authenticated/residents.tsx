@@ -40,11 +40,14 @@ function ResidentsPage() {
   const { data: residents } = useQuery({
     queryKey: ["residents", projectId],
     queryFn: async () => {
-      let q = supabase.from("residents").select("*, projects(name_ar)").order("created_at", { ascending: false });
+      let q = supabase.from("residents").select("*, projects(name_ar)");
       if (projectId) q = q.eq("project_id", projectId);
       const { data, error } = await q;
       if (error) throw error;
-      return data ?? [];
+      const collator = new Intl.Collator("ar", { numeric: true, sensitivity: "base" });
+      return (data ?? []).slice().sort((a: any, b: any) =>
+        collator.compare(String(a.unit_number ?? ""), String(b.unit_number ?? "")),
+      );
     },
   });
 
