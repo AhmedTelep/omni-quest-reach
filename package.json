@@ -4,6 +4,9 @@
   "sideEffects": false,
   "type": "module",
   "scripts": {
+    "check:routes": "node scripts/check-routes.mjs",
+    "predev": "node scripts/check-routes.mjs",
+    "prebuild": "node scripts/check-routes.mjs",
     "dev": "vite dev",
     "build": "vite build",
     "build:dev": "vite build --mode development",
