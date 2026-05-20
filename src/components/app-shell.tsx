@@ -15,6 +15,7 @@ import {
   Menu,
   ClipboardList,
   Wallet,
+  Home,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -33,6 +34,7 @@ type NavItem = { to: string; label: string; icon: React.ComponentType<{ classNam
 const NAV: NavItem[] = [
   { to: "/dashboard", label: "الرئيسية", icon: LayoutDashboard, roles: ["admin", "manager", "sales_manager", "sales", "accountant"] },
   { to: "/projects", label: "المشاريع", icon: Building2, roles: ["admin", "manager"] },
+  { to: "/units", label: "الوحدات", icon: Home, roles: ["admin", "manager", "sales_manager", "sales"] },
   { to: "/residents", label: "السكان", icon: Users, roles: ["admin", "manager", "sales_manager", "sales"] },
   { to: "/requests", label: "طلبات الصيانة", icon: Wrench, roles: ["admin", "manager", "sales_manager", "sales", "accountant"] },
   { to: "/installments", label: "الأقساط", icon: Receipt, roles: ["admin", "manager", "sales_manager", "accountant"] },
