@@ -119,7 +119,14 @@ function UnitsPage() {
       setOpen(false);
       setEditing(null);
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: any) => {
+      const msg = String(e?.message ?? "");
+      if (msg.includes("units_project_id_unit_number_key") || e?.code === "23505") {
+        toast.error("رقم الوحدة موجود مسبقاً في هذا المشروع");
+      } else {
+        toast.error(msg || "حدث خطأ");
+      }
+    },
   });
 
   const remove = useMutation({
@@ -171,6 +178,16 @@ function UnitsPage() {
                   return;
                 }
                 const unit_number = `${unitLetter} ${unitNumber}`;
+                const dup = (units ?? []).some(
+                  (u: any) =>
+                    u.project_id === project_id &&
+                    String(u.unit_number) === unit_number &&
+                    (!editing || u.id !== editing.id),
+                );
+                if (dup) {
+                  toast.error("رقم الوحدة موجود مسبقاً في هذا المشروع");
+                  return;
+                }
                 upsert.mutate({
                   project_id,
                   unit_number,
