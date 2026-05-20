@@ -26,6 +26,14 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Plus, Trash2, Pencil } from "lucide-react";
 
+const LETTERS = Array.from({ length: 26 }, (_, i) => String.fromCharCode(65 + i));
+const NUMBERS = Array.from({ length: 99 }, (_, i) => String(i + 1).padStart(2, "0"));
+
+function splitUnit(v: string | undefined | null): { letter: string; number: string } {
+  const m = String(v ?? "").match(/^\s*([A-Za-z])\s*(\d{1,3})\s*$/);
+  return { letter: m?.[1]?.toUpperCase() ?? "A", number: m?.[2]?.padStart(2, "0") ?? "01" };
+}
+
 type Unit = {
   id: string;
   project_id: string;
@@ -50,6 +58,16 @@ function UnitsPage() {
   const { projectId } = useProject();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Unit | null>(null);
+  const [unitLetter, setUnitLetter] = useState("A");
+  const [unitNumber, setUnitNumber] = useState("01");
+
+  useEffect(() => {
+    if (open) {
+      const s = splitUnit(editing?.unit_number);
+      setUnitLetter(s.letter);
+      setUnitNumber(s.number);
+    }
+  }, [open, editing]);
 
   const { data: projects } = useQuery({
     queryKey: ["projects"],
@@ -152,9 +170,10 @@ function UnitsPage() {
                   toast.error("اختر المشروع");
                   return;
                 }
+                const unit_number = `${unitLetter} ${unitNumber}`;
                 upsert.mutate({
                   project_id,
-                  unit_number: String(fd.get("unit_number") ?? "").trim(),
+                  unit_number,
                   floor: (String(fd.get("floor") ?? "") || null) as string | null,
                   area: fd.get("area") ? Number(fd.get("area")) : null,
                   price: fd.get("price") ? Number(fd.get("price")) : null,
@@ -181,7 +200,25 @@ function UnitsPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <Label>رقم الوحدة</Label>
-                  <Input name="unit_number" defaultValue={editing?.unit_number ?? ""} required />
+                  <div className="grid grid-cols-2 gap-2">
+                    <Select value={unitLetter} onValueChange={setUnitLetter}>
+                      <SelectTrigger><SelectValue placeholder="حرف" /></SelectTrigger>
+                      <SelectContent className="max-h-64">
+                        {LETTERS.map((l) => (
+                          <SelectItem key={l} value={l}>{l}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Select value={unitNumber} onValueChange={setUnitNumber}>
+                      <SelectTrigger><SelectValue placeholder="رقم" /></SelectTrigger>
+                      <SelectContent className="max-h-64">
+                        {NUMBERS.map((n) => (
+                          <SelectItem key={n} value={n}>{n}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <p className="text-xs text-muted-foreground">المعاينة: {unitLetter} {unitNumber}</p>
                 </div>
                 <div className="space-y-1.5">
                   <Label>الدور</Label>
