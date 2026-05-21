@@ -1,84 +1,88 @@
-## نظرة عامة
 
-البروجيكت الأصلي = Monorepo (Express + Drizzle + JWT يدوي + Expo). هنعيد بناء جزء الـ Admin Panel على Lovable مع نقل السكيمة كاملة لـ Supabase، وتطبيق Expo الموجود هيشتغل على نفس الداتابيز عن طريق `@supabase/supabase-js` (تعديل بسيط من جهتك).
+# خطة: مراجعة الصلاحيات + Dashboard الساكن
 
-## النتيجة النهائية
+## 1) ضبط صلاحيات الموظفين
 
-- لوحة تحكم أدمن كاملة (عربي RTL) على Lovable + Cloudflare
-- داتابيز موحّدة على Supabase (PostgreSQL + Auth + Storage + Realtime)
-- تطبيق Expo بيتصل بنفس الـ Supabase = أي تعديل من الويب يظهر فوراً على الموبايل والعكس
-- جاهز للنشر مباشرة من زر Publish في Lovable
+### تعديل الـ Sidebar (`src/components/app-shell.tsx`)
+إعادة تعريف القوائم لكل دور بدقة:
 
-## القرارات المعمارية
+| الصفحة | admin | manager | sales_manager | sales | accountant |
+|---|---|---|---|---|---|
+| الرئيسية | ✅ | ✅ | ✅ | ✅ | ✅ (مبسطة) |
+| المشاريع | ✅ | ✅ | ✅ | ❌ | ❌ |
+| الوحدات | ✅ | ✅ | ✅ | ✅ | ❌ |
+| السكان | ✅ | ✅ | ✅ | ✅ | ❌ |
+| طلبات الصيانة | ✅ | ✅ | ✅ | ✅ | ❌ |
+| الأقساط | ✅ | ✅ | ✅ (read-only) | ❌ | ✅ |
+| أنواع الخدمات | ✅ | ✅ | ❌ | ❌ | ❌ |
+| الموظفين | ✅ | ✅ (بدون admin) | ❌ | ❌ | ❌ |
 
-| القرار | التفسير |
-|---|---|
-| **Auth**: Supabase Auth بدل JWT يدوي | الأدمن/الموظف → email + password عبر Supabase Auth. السكان → unit_number كـ email داخلي (`unit@compound.local`) + password. ده يدّيهم Realtime + RLS مظبوط. |
-| **الأدوار**: جدول `user_roles` منفصل | admin / manager / sales_manager / sales / accountant / resident — لمنع privilege escalation. |
-| **التخزين**: Supabase Storage | بدل `artifacts/api-server/uploads/` — للإيصالات وصور طلبات الصيانة. |
-| **سكيمة DB**: مطابقة 1:1 للسكيمة الأصلية | نفس الجداول والأعمدة (projects, residents, employees, maintenance_requests, services, installments) عشان تطبيق Expo يتحول بأقل تعديل. |
-| **RLS**: مفعّل على كل الجداول | السكان يشوفوا بياناتهم بس. الموظفين حسب الدور. الأدمن كل حاجة. |
+### ضبط داخل الصفحات
+- **`installments.tsx`**: إخفاء زر "إضافة قسط" + أزرار التأكيد/الرفض عن `sales_manager`. هو يشوف القائمة فقط.
+- **`employees.tsx`**: المدير (manager) لا يرى خيار دور "admin" في الـ Select ولا يقدر يحذف/يعدّل أدمن.
+- **Dashboard الرئيسي**: للمحاسب نعرض كروت إحصائيات أقساط فقط (مدفوع/مستحق/بانتظار التأكيد).
 
-## المراحل
+### ضبط server-side
+- **`createEmployee`**: لو الـ caller `manager` فقط (مش `admin`) ولـ `role` المطلوب = `admin` → رفض.
+- **`deleteUser` / `resetUserPassword`**: نفس المنطق — `manager` لا يقدر يلمس أدمن.
+- **`createInstallment`** + **`decideInstallment`**: تأكيد أن `sales_manager` مش ضمن المسموح لهم في إنشاء/تأكيد الأقساط (مراجعة المنطق الحالي).
 
-### المرحلة 1 — الباك إند (Lovable Cloud)
-1. تفعيل Lovable Cloud
-2. Migration ينشئ كل الجداول مطابقة للسكيمة الأصلية + جدول `user_roles` + enum للأدوار
-3. RLS policies لكل جدول + `has_role()` security definer function
-4. Storage buckets: `receipts`, `request-images`, `project-logos`
-5. Trigger لتحويل `auth.users` الجديد → صف في `employees` أو `residents` حسب metadata
+## 2) إضافة "المدينة" للمشاريع (للطقس)
 
-### المرحلة 2 — Admin Panel UI
-صفحات (مطابقة للأصلي):
-- `/login` — تسجيل دخول أدمن/موظف موحّد
-- `/` — Dashboard (إحصائيات + فلتر مشروع)
-- `/projects` — CRUD مشاريع
-- `/residents` — CRUD سكان + إنشاء حساب Auth
-- `/requests` — طلبات الصيانة (تحديث الحالة + ملاحظات)
-- `/services` — إدارة أنواع الخدمات
-- `/installments` — أقساط + سير عمل التأكيد
-- `/employees` — إدارة الموظفين
-- `/employee-accountant` — بورتال المحاسب (رفع إيصال)
-- `/employee-sales` / `/employee-sales-manager` — حسب الدور
+### Migration
+```
+ALTER TABLE projects ADD COLUMN city text;
+ALTER TABLE projects ADD COLUMN latitude numeric;
+ALTER TABLE projects ADD COLUMN longitude numeric;
+```
+- `city`: اسم المدينة (للعرض)
+- `lat/lng`: نملأها تلقائياً من Open-Meteo geocoding API بعد إدخال المدينة (مجاني، بدون مفتاح).
 
-كله بـ shadcn + Tailwind + RTL عربي + sidebar فيه dropdown اختيار المشروع.
+### تعديل `projects.tsx` + `admin-users.functions.ts`
+- إضافة حقل "المدينة" في نموذج المشروع.
+- عند الحفظ: نداء geocoding وتخزين lat/lng.
 
-### المرحلة 3 — Realtime
-- اشتراك على `maintenance_requests` و `installments` — أي تعديل من الموبايل يظهر فوراً في الأدمن.
+## 3) إعادة بناء Dashboard الساكن (`dashboard.tsx`)
 
-### المرحلة 4 — توثيق تعديلات تطبيق Expo (هتعملها أنت)
-هسلّملك:
-- الـ Supabase URL + Anon Key (من Lovable Cloud)
-- ملف SQL للسكيمة (للمراجعة)
-- دليل قصير: استبدل client الـ API القديم في `resident-app/` بـ `createClient` من `@supabase/supabase-js`، استخدم `signInWithPassword` للسكان، والاستعلامات مباشرة بدل REST endpoints.
-- نفس RLS هتحمي الموبايل تلقائياً.
+عند `isResident`، نعرض صفحة كاملة بدل النص الفارغ الحالي. الأقسام:
 
-### المرحلة 5 — النشر
-زر Publish من Lovable.
+### أ) كارت بيانات الوحدة
+- رقم الوحدة، اسم المشروع، السعر الإجمالي.
 
-## ما هو خارج النطاق
+### ب) ملخص مالي
+- إجمالي مدفوع (مجموع الأقساط `confirmed`) / إجمالي مستحق / متبقي من سعر الوحدة.
+- شريط تقدم بصري.
 
-- ❌ مش هنبني تطبيق Expo من جديد — هتعدّله أنت بنفسك بناءً على الدليل
-- ❌ مش هنحوّل الـ Express API القديم — هيتشال كلياً، Supabase هيقوم بدوره
-- ❌ ترحيل بيانات قديمة من قاعدة Replit القديمة — لو محتاج ده قولي
+### ج) معرض صور المشروع
+- carousel بسيط لصور `projects.images`.
+
+### د) مساحات المشروع
+- شارات (badges) من `projects.spaces`: مسبح، جيم...
+
+### هـ) طلبات الصيانة المفتوحة
+- آخر 3 طلبات للساكن مع حالتها + رابط "كل طلباتي".
+
+### و) الأقساط القادمة
+- أقرب قسطين غير مدفوعين + رابط "كل أقساطي".
+
+### ز) كارت الطقس
+- جلب من `https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lng}&current=temperature_2m,weather_code` باستخدام lat/lng من المشروع.
+- لو المشروع مفيش له إحداثيات → نخفي الكارت بهدوء.
+- عرض: الحرارة الحالية + أيقونة الحالة + اسم المدينة.
 
 ## التفاصيل التقنية
 
-```text
-[Web Admin - TanStack Start]  ─┐
-                                ├─► Supabase (Postgres + Auth + Storage + Realtime)
-[Mobile - Expo + supabase-js]  ─┘
-```
+- لا migrations حساسة على RLS (الأعمدة الجديدة ترث RLS الحالي للمشاريع).
+- جلب الطقس يتم client-side مباشرة من المتصفح (Open-Meteo CORS-enabled، بدون مفتاح، بدون server function).
+- استعلامات Dashboard الساكن نستخدم `useQuery` متعددة وموازية (`Promise.all` غير ضروري لأن React Query يوازي بطبيعته).
+- لا تغييرات على ملفات auto-generated (`types.ts`, `client.ts`).
+- تعديلات قواعد البيانات: migration واحد فقط (3 أعمدة على `projects`).
 
-- Auth flow: `supabase.auth.signInWithPassword()` على الويب والموبايل
-- RLS policies تستخدم `auth.uid()` و `public.has_role(auth.uid(), 'role')`
-- بيانات السكان مرتبطة بـ `auth_user_id uuid references auth.users(id)`
-- ترحيل سلس: عند إنشاء resident جديد من الأدمن → ينشئ Supabase user تلقائياً + صف في `residents`
-
-## المدة المتوقعة
-
-شغل كبير. مراحل 1+2+3 هتاخد عدة جولات. هبدأ بالباك إند والسكيمة، وبعد ما تتأكد منها هنبني الواجهة.
-
-## الموافقة
-
-لو موافق، هبدأ فوراً بتفعيل Lovable Cloud والمرحلة 1.
+## ملفات سيتم تعديلها
+- `supabase/migrations/<new>.sql` — أعمدة city/lat/lng
+- `src/lib/admin-users.functions.ts` — حماية manager من admin، schema المشروع
+- `src/components/app-shell.tsx` — قوائم navigation الجديدة
+- `src/routes/_authenticated/dashboard.tsx` — Dashboard الساكن + كارت المحاسب
+- `src/routes/_authenticated/installments.tsx` — إخفاء أزرار للـ sales_manager
+- `src/routes/_authenticated/employees.tsx` — منع manager من admin
+- `src/routes/_authenticated/projects.tsx` — حقل المدينة + geocoding

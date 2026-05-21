@@ -203,12 +203,15 @@ export type Database = {
       }
       projects: {
         Row: {
+          city: string | null
           color: string
           created_at: string
           description: string | null
           id: string
           images: string[]
+          latitude: number | null
           logo: string | null
+          longitude: number | null
           name_ar: string
           name_en: string
           project_link: string | null
@@ -217,12 +220,15 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          city?: string | null
           color?: string
           created_at?: string
           description?: string | null
           id?: string
           images?: string[]
+          latitude?: number | null
           logo?: string | null
+          longitude?: number | null
           name_ar: string
           name_en: string
           project_link?: string | null
@@ -231,12 +237,15 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          city?: string | null
           color?: string
           created_at?: string
           description?: string | null
           id?: string
           images?: string[]
+          latitude?: number | null
           logo?: string | null
+          longitude?: number | null
           name_ar?: string
           name_en?: string
           project_link?: string | null
