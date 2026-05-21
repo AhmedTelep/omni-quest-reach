@@ -207,10 +207,12 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
+          images: string[]
           logo: string | null
           name_ar: string
           name_en: string
           project_link: string | null
+          spaces: Json
           total_units: number
           updated_at: string
         }
@@ -219,10 +221,12 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          images?: string[]
           logo?: string | null
           name_ar: string
           name_en: string
           project_link?: string | null
+          spaces?: Json
           total_units?: number
           updated_at?: string
         }
@@ -231,10 +235,12 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          images?: string[]
           logo?: string | null
           name_ar?: string
           name_en?: string
           project_link?: string | null
+          spaces?: Json
           total_units?: number
           updated_at?: string
         }
