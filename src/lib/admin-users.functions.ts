@@ -18,6 +18,15 @@ async function assertCallerIsAdmin(userId: string) {
   }
 }
 
+/** Returns true if the user has the 'admin' role. */
+async function userIsAdmin(userId: string): Promise<boolean> {
+  const { data } = await supabaseAdmin
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", userId);
+  return (data ?? []).some((r) => r.role === "admin");
+}
+
 /**
  * Bootstrap the very first admin. Only works when there are zero users with the admin role.
  * After that the endpoint refuses to create new admins.
@@ -74,6 +83,14 @@ export const createEmployee = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     await assertCallerIsAdmin(context.userId);
+
+    // Only admins can create other admins. Managers cannot.
+    if (data.role === "admin") {
+      const callerIsAdmin = await userIsAdmin(context.userId);
+      if (!callerIsAdmin) {
+        throw new Error("غير مصرح: فقط الأدمن يقدر ينشئ حساب أدمن آخر");
+      }
+    }
 
     const { data: created, error } = await supabaseAdmin.auth.admin.createUser({
       email: data.email,
@@ -174,6 +191,12 @@ export const resetUserPassword = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     await assertCallerIsAdmin(context.userId);
+    // Only an admin may reset another admin's password.
+    const targetIsAdmin = await userIsAdmin(data.userId);
+    if (targetIsAdmin) {
+      const callerIsAdmin = await userIsAdmin(context.userId);
+      if (!callerIsAdmin) throw new Error("غير مصرح: فقط الأدمن يقدر يعدّل حساب أدمن");
+    }
     const { error } = await supabaseAdmin.auth.admin.updateUserById(data.userId, {
       password: data.newPassword,
     });
@@ -187,6 +210,12 @@ export const deleteUser = createServerFn({ method: "POST" })
   .inputValidator((input) => z.object({ userId: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
     await assertCallerIsAdmin(context.userId);
+    // Only an admin may delete another admin.
+    const targetIsAdmin = await userIsAdmin(data.userId);
+    if (targetIsAdmin) {
+      const callerIsAdmin = await userIsAdmin(context.userId);
+      if (!callerIsAdmin) throw new Error("غير مصرح: فقط الأدمن يقدر يحذف حساب أدمن");
+    }
     const { error } = await supabaseAdmin.auth.admin.deleteUser(data.userId);
     if (error) throw new Error(error.message);
     return { ok: true };
@@ -265,7 +294,8 @@ export const createInstallment = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
-    await assertCallerHasRoles(context.userId, ["admin", "manager", "sales_manager"]);
+    // Sales manager has read-only access to installments per business rules.
+    await assertCallerHasRoles(context.userId, ["admin", "manager"]);
     const { error } = await supabaseAdmin.from("installments").insert(data);
     if (error) throw new Error(error.message);
     return { ok: true };
@@ -299,6 +329,9 @@ const ProjectInput = z.object({
   color: z.string().regex(/^#[0-9a-fA-F]{6}$/).default("#1d4ed8"),
   total_units: z.number().int().min(0).max(100000).default(0),
   images: z.array(z.string().url().max(2000)).max(50).optional().default([]),
+  city: z.string().max(120).nullable().optional(),
+  latitude: z.number().min(-90).max(90).nullable().optional(),
+  longitude: z.number().min(-180).max(180).nullable().optional(),
   spaces: z
     .array(
       z.object({

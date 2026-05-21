@@ -33,6 +33,9 @@ type Project = {
   total_units: number;
   images: string[];
   spaces: Space[];
+  city: string | null;
+  latitude: number | null;
+  longitude: number | null;
 };
 
 function ProjectsPage() {
@@ -61,6 +64,9 @@ function ProjectsPage() {
         ...p,
         images: (p.images ?? []) as string[],
         spaces: (Array.isArray(p.spaces) ? p.spaces : []) as Space[],
+        city: p.city ?? null,
+        latitude: p.latitude ?? null,
+        longitude: p.longitude ?? null,
       })) as Project[];
     },
   });
@@ -74,6 +80,9 @@ function ProjectsPage() {
       total_units: number;
       images: string[];
       spaces: Space[];
+      city: string | null;
+      latitude: number | null;
+      longitude: number | null;
     }) => upsertFn({ data: { id: editing?.id, values: form } }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["projects"] });
@@ -110,6 +119,21 @@ function ProjectsPage() {
     }
   }
 
+  /** Look up lat/lng from Open-Meteo's free geocoding API (no key needed). */
+  async function geocodeCity(city: string): Promise<{ lat: number; lng: number } | null> {
+    try {
+      const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=ar&format=json`;
+      const res = await fetch(url);
+      if (!res.ok) return null;
+      const data = await res.json();
+      const hit = data?.results?.[0];
+      if (!hit) return null;
+      return { lat: Number(hit.latitude), lng: Number(hit.longitude) };
+    } catch {
+      return null;
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -130,9 +154,18 @@ function ProjectsPage() {
             </DialogHeader>
             <form
               className="space-y-4"
-              onSubmit={(e) => {
+              onSubmit={async (e) => {
                 e.preventDefault();
                 const fd = new FormData(e.currentTarget);
+                const city = (String(fd.get("city") ?? "").trim()) || null;
+                let latitude: number | null = editing?.latitude ?? null;
+                let longitude: number | null = editing?.longitude ?? null;
+                // Re-geocode if the city changed or coordinates are missing.
+                if (city && (city !== editing?.city || latitude == null)) {
+                  const geo = await geocodeCity(city);
+                  if (geo) { latitude = geo.lat; longitude = geo.lng; }
+                }
+                if (!city) { latitude = null; longitude = null; }
                 upsert.mutate({
                   name_ar: String(fd.get("name_ar")),
                   name_en: String(fd.get("name_en")),
@@ -141,6 +174,9 @@ function ProjectsPage() {
                   total_units: Number(fd.get("total_units") || 0),
                   images,
                   spaces: spaces.filter((s) => s.name.trim()),
+                  city,
+                  latitude,
+                  longitude,
                 });
               }}
             >
@@ -155,6 +191,17 @@ function ProjectsPage() {
               <div className="space-y-2">
                 <Label>الوصف</Label>
                 <Textarea name="description" defaultValue={editing?.description ?? ""} />
+              </div>
+              <div className="space-y-2">
+                <Label>المدينة (لعرض الطقس للساكن)</Label>
+                <Input
+                  name="city"
+                  placeholder="مثال: القاهرة، الإسكندرية، دبي…"
+                  defaultValue={editing?.city ?? ""}
+                />
+                <p className="text-xs text-muted-foreground">
+                  سيتم تحديد الإحداثيات تلقائياً عند الحفظ.
+                </p>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">

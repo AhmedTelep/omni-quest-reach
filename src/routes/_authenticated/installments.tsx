@@ -35,15 +35,19 @@ function InstallmentsPage() {
   const { projectId } = useProject();
   const { user } = useAuthSession();
   const { data: roles } = useUserRoles(user);
-  const isAdminLike = !!roles?.some((r) => ["admin", "manager", "sales_manager"].includes(r));
-  const isAccountant = !!roles?.some((r) => r === "accountant");
+  // Creators can add new installments (admin/manager only).
+  const canCreate = !!roles?.some((r) => ["admin", "manager"].includes(r));
+  // Approvers can confirm/reject installments (admin/manager/accountant).
+  const canApprove = !!roles?.some((r) => ["admin", "manager", "accountant"].includes(r));
+  // Sales manager and other roles need the residents list only if they can create.
+  const showResidentPicker = canCreate;
   const [open, setOpen] = useState(false);
   const decide = useServerFn(decideInstallment);
   const createFn = useServerFn(createInstallment);
 
   const { data: residents } = useQuery({
     queryKey: ["residents-min", projectId],
-    enabled: isAdminLike,
+    enabled: showResidentPicker,
     queryFn: async () => {
       let q = supabase.from("residents").select("id, name, unit_number, project_id").order("unit_number");
       if (projectId) q = q.eq("project_id", projectId);
@@ -102,7 +106,7 @@ function InstallmentsPage() {
           <h1 className="text-2xl font-bold">الأقساط</h1>
           <p className="mt-1 text-sm text-muted-foreground">إدارة وتأكيد الأقساط</p>
         </div>
-        {isAdminLike && (
+        {canCreate && (
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild><Button><Plus className="ms-2 h-4 w-4" />قسط جديد</Button></DialogTrigger>
             <DialogContent>
@@ -176,7 +180,7 @@ function InstallmentsPage() {
                         <FileText className="h-4 w-4" />
                       </Button>
                     )}
-                    {(isAdminLike || isAccountant) && i.payment_status === "pending_confirmation" && (
+                    {canApprove && i.payment_status === "pending_confirmation" && (
                       <>
                         <Button size="icon" variant="ghost" onClick={() => confirmIns.mutate({ id: i.id, approve: true })}>
                           <Check className="h-4 w-4 text-emerald-600" />
