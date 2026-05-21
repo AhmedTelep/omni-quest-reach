@@ -298,6 +298,18 @@ const ProjectInput = z.object({
   description: z.string().max(2000).nullable().optional(),
   color: z.string().regex(/^#[0-9a-fA-F]{6}$/).default("#1d4ed8"),
   total_units: z.number().int().min(0).max(100000).default(0),
+  images: z.array(z.string().url().max(2000)).max(50).optional().default([]),
+  spaces: z
+    .array(
+      z.object({
+        name: z.string().min(1).max(120),
+        area: z.number().min(0).max(10_000_000).nullable().optional(),
+        notes: z.string().max(500).nullable().optional(),
+      }),
+    )
+    .max(50)
+    .optional()
+    .default([]),
 });
 
 /** Create/Update/Delete projects (admin/manager only) */
