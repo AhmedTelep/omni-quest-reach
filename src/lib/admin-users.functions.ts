@@ -433,7 +433,7 @@ export const updateRequest = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     await assertCallerHasRoles(context.userId, [...STAFF_ROLES]);
-    const update: Record<string, unknown> = {};
+    const update: { admin_notes?: string | null; status?: "open" | "in_progress" | "completed" } = {};
     if (data.admin_notes !== undefined) update.admin_notes = data.admin_notes;
     if (data.status) update.status = data.status;
     const { error } = await supabaseAdmin
