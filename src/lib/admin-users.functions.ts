@@ -84,6 +84,14 @@ export const createEmployee = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertCallerIsAdmin(context.userId);
 
+    // Only admins can create other admins. Managers cannot.
+    if (data.role === "admin") {
+      const callerIsAdmin = await userIsAdmin(context.userId);
+      if (!callerIsAdmin) {
+        throw new Error("غير مصرح: فقط الأدمن يقدر ينشئ حساب أدمن آخر");
+      }
+    }
+
     const { data: created, error } = await supabaseAdmin.auth.admin.createUser({
       email: data.email,
       password: data.password,
