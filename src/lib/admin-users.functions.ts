@@ -339,3 +339,120 @@ export const deleteProject = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+/** Update resident (admin/manager/sales_manager) */
+export const updateResident = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z
+      .object({
+        id: z.string().uuid(),
+        name: z.string().min(1).max(255),
+        phone: z.string().max(50).nullable().optional(),
+        unitPrice: z.number().nullable().optional(),
+        unitNumber: z.string().min(1).max(50),
+        projectId: z.string().uuid().nullable().optional(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await assertCallerHasRoles(context.userId, ["admin", "manager", "sales_manager"]);
+    const { error } = await supabaseAdmin
+      .from("residents")
+      .update({
+        name: data.name,
+        phone: data.phone ?? null,
+        unit_price: data.unitPrice ?? null,
+        unit_number: data.unitNumber,
+        project_id: data.projectId ?? null,
+      })
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    // Sync profile name
+    const { data: r } = await supabaseAdmin
+      .from("residents")
+      .select("user_id")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (r?.user_id) {
+      await supabaseAdmin
+        .from("profiles")
+        .update({ full_name: data.name, phone: data.phone ?? null })
+        .eq("id", r.user_id);
+    }
+    return { ok: true };
+  });
+
+const ServiceInput = z.object({
+  slug: z.string().min(1).max(60).regex(/^[a-z0-9_-]+$/),
+  name_ar: z.string().min(1).max(120),
+  name_en: z.string().min(1).max(120),
+  icon: z.string().min(1).max(60).default("wrench"),
+  color: z.string().regex(/^#[0-9a-fA-F]{6}$/).default("#6b7280"),
+  bg_color: z.string().regex(/^#[0-9a-fA-F]{6}$/).default("#f3f4f6"),
+});
+
+export const upsertService = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z.object({ id: z.string().uuid().optional(), values: ServiceInput }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await assertCallerHasRoles(context.userId, ["admin", "manager"]);
+    if (data.id) {
+      const { error } = await supabaseAdmin.from("services").update(data.values).eq("id", data.id);
+      if (error) throw new Error(error.message);
+    } else {
+      const { error } = await supabaseAdmin.from("services").insert(data.values);
+      if (error) throw new Error(error.message);
+    }
+    return { ok: true };
+  });
+
+export const deleteService = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => z.object({ id: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    await assertCallerHasRoles(context.userId, ["admin", "manager"]);
+    const { error } = await supabaseAdmin.from("services").delete().eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+/** Update maintenance request admin notes + optional status (staff) */
+export const updateRequest = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z
+      .object({
+        id: z.string().uuid(),
+        admin_notes: z.string().max(2000).nullable().optional(),
+        status: z.enum(["open", "in_progress", "completed"]).optional(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await assertCallerHasRoles(context.userId, [...STAFF_ROLES]);
+    const update: { admin_notes?: string | null; status?: "open" | "in_progress" | "completed" } = {};
+    if (data.admin_notes !== undefined) update.admin_notes = data.admin_notes;
+    if (data.status) update.status = data.status;
+    const { error } = await supabaseAdmin
+      .from("maintenance_requests")
+      .update(update)
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const deleteRequest = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => z.object({ id: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    await assertCallerHasRoles(context.userId, ["admin", "manager"]);
+    const { error } = await supabaseAdmin
+      .from("maintenance_requests")
+      .delete()
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });

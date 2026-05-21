@@ -11,7 +11,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
-import { createResident, deleteUser } from "@/lib/admin-users.functions";
+import { createResident, deleteUser, updateResident } from "@/lib/admin-users.functions";
 import { useProject } from "@/contexts/project-context";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -21,7 +21,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Pencil } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/residents")({ component: ResidentsPage });
 
@@ -31,8 +31,10 @@ function ResidentsPage() {
   const [open, setOpen] = useState(false);
   const [formProjectId, setFormProjectId] = useState<string>("");
   const [formUnitNumber, setFormUnitNumber] = useState<string>("");
+  const [editing, setEditing] = useState<any | null>(null);
   const createFn = useServerFn(createResident);
   const deleteFn = useServerFn(deleteUser);
+  const updateFn = useServerFn(updateResident);
 
   const { data: projects } = useQuery({
     queryKey: ["projects"],
@@ -122,6 +124,23 @@ function ResidentsPage() {
       qc.invalidateQueries({ queryKey: ["residents"] });
       qc.invalidateQueries({ queryKey: ["units"] });
       toast.success("تم الحذف");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const update = useMutation({
+    mutationFn: (vars: {
+      id: string;
+      name: string;
+      phone?: string | null;
+      unitPrice?: number | null;
+      unitNumber: string;
+      projectId?: string | null;
+    }) => updateFn({ data: vars }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["residents"] });
+      toast.success("تم التحديث");
+      setEditing(null);
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -222,6 +241,9 @@ function ResidentsPage() {
                 <td className="p-3 text-muted-foreground">{r.projects?.name_ar ?? "—"}</td>
                 <td className="p-3 text-muted-foreground">{r.phone ?? "—"}</td>
                 <td className="p-3 text-left">
+                  <Button size="icon" variant="ghost" onClick={() => setEditing(r)}>
+                    <Pencil className="h-4 w-4" />
+                  </Button>
                   {r.user_id && (
                     <Button size="icon" variant="ghost" onClick={() => confirm("حذف الساكن؟") && remove.mutate({ userId: r.user_id, projectId: r.project_id, unitNumber: r.unit_number })}>
                       <Trash2 className="h-4 w-4 text-destructive" />
@@ -234,6 +256,35 @@ function ResidentsPage() {
           </tbody>
         </table>
       </CardContent></Card>
+
+      <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>تعديل بيانات الساكن</DialogTitle></DialogHeader>
+          {editing && (
+            <form
+              className="space-y-3"
+              onSubmit={(e) => {
+                e.preventDefault();
+                const fd = new FormData(e.currentTarget);
+                update.mutate({
+                  id: editing.id,
+                  name: String(fd.get("name")),
+                  phone: String(fd.get("phone") ?? "") || null,
+                  unitNumber: String(fd.get("unit_number")),
+                  unitPrice: fd.get("price") ? Number(fd.get("price")) : null,
+                  projectId: editing.project_id ?? null,
+                });
+              }}
+            >
+              <div className="space-y-1.5"><Label>الاسم</Label><Input name="name" defaultValue={editing.name} required /></div>
+              <div className="space-y-1.5"><Label>رقم الوحدة</Label><Input name="unit_number" defaultValue={editing.unit_number} required /></div>
+              <div className="space-y-1.5"><Label>الهاتف</Label><Input name="phone" defaultValue={editing.phone ?? ""} /></div>
+              <div className="space-y-1.5"><Label>سعر الوحدة</Label><Input name="price" type="number" step="0.01" defaultValue={editing.unit_price ?? ""} /></div>
+              <DialogFooter><Button type="submit" disabled={update.isPending}>{update.isPending ? "جاري…" : "حفظ"}</Button></DialogFooter>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

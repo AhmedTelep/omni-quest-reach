@@ -2,13 +2,16 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
-import { updateRequestStatus } from "@/lib/admin-users.functions";
+import { updateRequestStatus, updateRequest, deleteRequest } from "@/lib/admin-users.functions";
 import { useProject } from "@/contexts/project-context";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Trash2, Save } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/requests")({ component: RequestsPage });
 
@@ -18,6 +21,9 @@ function RequestsPage() {
   const qc = useQueryClient();
   const { projectId } = useProject();
   const updateStatusFn = useServerFn(updateRequestStatus);
+  const updateFn = useServerFn(updateRequest);
+  const deleteFn = useServerFn(deleteRequest);
+  const [notesDraft, setNotesDraft] = useState<Record<string, string>>({});
 
   const { data } = useQuery({
     queryKey: ["requests", projectId],
@@ -44,6 +50,19 @@ function RequestsPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const saveNotes = useMutation({
+    mutationFn: ({ id, admin_notes }: { id: string; admin_notes: string }) =>
+      updateFn({ data: { id, admin_notes } }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["requests"] }); toast.success("تم حفظ الملاحظات"); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const remove = useMutation({
+    mutationFn: (id: string) => deleteFn({ data: { id } }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["requests"] }); toast.success("تم الحذف"); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   return (
     <div className="space-y-6">
       <div>
@@ -53,23 +72,51 @@ function RequestsPage() {
       <div className="space-y-3">
         {data?.map((r: any) => (
           <Card key={r.id}>
-            <CardContent className="flex flex-wrap items-center justify-between gap-4 p-4">
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="font-semibold">{r.service_type}</span>
-                  <Badge variant="outline">{STATUS_LABEL[r.status] ?? r.status}</Badge>
+            <CardContent className="space-y-3 p-4">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div className="flex gap-3">
+                  {r.image_url && (
+                    <img src={r.image_url} alt="" className="h-16 w-16 rounded object-cover" />
+                  )}
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold">{r.service_type}</span>
+                      <Badge variant="outline">{STATUS_LABEL[r.status] ?? r.status}</Badge>
+                    </div>
+                    <p className="mt-1 text-sm text-muted-foreground">{r.residents?.name} — وحدة {r.residents?.unit_number}</p>
+                    {r.notes && <p className="mt-1 text-sm">{r.notes}</p>}
+                    <p className="mt-1 text-xs text-muted-foreground">{new Date(r.created_at).toLocaleString("ar-EG")}</p>
+                  </div>
                 </div>
-                <p className="mt-1 text-sm text-muted-foreground">{r.residents?.name} — وحدة {r.residents?.unit_number}</p>
-                {r.notes && <p className="mt-1 text-sm">{r.notes}</p>}
+                <div className="flex items-center gap-2">
+                  <Select value={r.status} onValueChange={(v) => update.mutate({ id: r.id, status: v as any })}>
+                    <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="open">جديد</SelectItem>
+                      <SelectItem value="in_progress">قيد التنفيذ</SelectItem>
+                      <SelectItem value="completed">منتهي</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button size="icon" variant="ghost" onClick={() => confirm("حذف الطلب؟") && remove.mutate(r.id)}>
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
+                </div>
               </div>
-              <Select value={r.status} onValueChange={(v) => update.mutate({ id: r.id, status: v as any })}>
-                <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="open">جديد</SelectItem>
-                  <SelectItem value="in_progress">قيد التنفيذ</SelectItem>
-                  <SelectItem value="completed">منتهي</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="flex items-start gap-2">
+                <Textarea
+                  placeholder="رد الإدارة على الساكن…"
+                  defaultValue={r.admin_notes ?? ""}
+                  onChange={(e) => setNotesDraft((d) => ({ ...d, [r.id]: e.target.value }))}
+                  className="min-h-[60px]"
+                />
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => saveNotes.mutate({ id: r.id, admin_notes: notesDraft[r.id] ?? r.admin_notes ?? "" })}
+                >
+                  <Save className="ms-1 h-4 w-4" />حفظ
+                </Button>
+              </div>
             </CardContent>
           </Card>
         ))}
