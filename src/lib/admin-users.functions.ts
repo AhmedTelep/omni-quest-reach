@@ -191,6 +191,12 @@ export const resetUserPassword = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     await assertCallerIsAdmin(context.userId);
+    // Only an admin may reset another admin's password.
+    const targetIsAdmin = await userIsAdmin(data.userId);
+    if (targetIsAdmin) {
+      const callerIsAdmin = await userIsAdmin(context.userId);
+      if (!callerIsAdmin) throw new Error("غير مصرح: فقط الأدمن يقدر يعدّل حساب أدمن");
+    }
     const { error } = await supabaseAdmin.auth.admin.updateUserById(data.userId, {
       password: data.newPassword,
     });
@@ -204,6 +210,12 @@ export const deleteUser = createServerFn({ method: "POST" })
   .inputValidator((input) => z.object({ userId: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
     await assertCallerIsAdmin(context.userId);
+    // Only an admin may delete another admin.
+    const targetIsAdmin = await userIsAdmin(data.userId);
+    if (targetIsAdmin) {
+      const callerIsAdmin = await userIsAdmin(context.userId);
+      if (!callerIsAdmin) throw new Error("غير مصرح: فقط الأدمن يقدر يحذف حساب أدمن");
+    }
     const { error } = await supabaseAdmin.auth.admin.deleteUser(data.userId);
     if (error) throw new Error(error.message);
     return { ok: true };
