@@ -57,7 +57,11 @@ function ProjectsPage() {
     queryFn: async () => {
       const { data, error } = await supabase.from("projects").select("*").order("created_at", { ascending: false });
       if (error) throw error;
-      return data as Project[];
+      return (data ?? []).map((p: any) => ({
+        ...p,
+        images: (p.images ?? []) as string[],
+        spaces: (Array.isArray(p.spaces) ? p.spaces : []) as Space[],
+      })) as Project[];
     },
   });
 
