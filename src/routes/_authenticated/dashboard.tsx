@@ -19,16 +19,9 @@ function DashboardPage() {
   const isResident = !!roles?.length && roles.every((r) => r === "resident");
   const isAccountantOnly = !!roles?.length && roles.every((r) => r === "accountant");
 
-  if (isResident) {
-    return <ResidentDashboard />;
-  }
-
-  if (isAccountantOnly) {
-    return <AccountantDashboard projectId={projectId} />;
-  }
-
   const stats = useQuery({
     queryKey: ["dashboard-stats", projectId],
+    enabled: !isResident && !isAccountantOnly,
     queryFn: async () => {
       const projectsQ = supabase.from("projects").select("*", { count: "exact", head: true });
       let residentsQ = supabase.from("residents").select("*", { count: "exact", head: true });
@@ -62,6 +55,14 @@ function DashboardPage() {
       };
     },
   });
+
+  if (isResident) {
+    return <ResidentDashboard />;
+  }
+
+  if (isAccountantOnly) {
+    return <AccountantDashboard projectId={projectId} />;
+  }
 
   const items = [
     { label: "المشاريع", value: stats.data?.projects ?? 0, icon: Building2, color: "text-blue-600" },
