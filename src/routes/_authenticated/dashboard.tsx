@@ -327,7 +327,7 @@ function ResidentDashboard() {
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-2">
-              {resident.project.spaces.map((s: Space, i: number) => (
+              {resident.project.spaces.map((s: { name: string; area?: number | string }, i: number) => (
                 <span key={i} className="rounded-full border bg-muted/50 px-3 py-1 text-sm">
                   {s.name}{s.area ? ` · ${s.area} م²` : ""}
                 </span>
