@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { createEmployee, deleteUser } from "@/lib/admin-users.functions";
+import { useAuthSession, useUserRoles } from "@/hooks/use-auth";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -30,6 +31,13 @@ function EmployeesPage() {
   const [open, setOpen] = useState(false);
   const createFn = useServerFn(createEmployee);
   const deleteFn = useServerFn(deleteUser);
+  const { user } = useAuthSession();
+  const { data: callerRoles } = useUserRoles(user);
+  const callerIsAdmin = !!callerRoles?.includes("admin");
+  // Only admin sees the "admin" role option; manager does not.
+  const roleOptions = Object.entries(ROLE_LABEL).filter(([v]) =>
+    callerIsAdmin ? true : v !== "admin",
+  );
 
   const { data: employees } = useQuery({
     queryKey: ["employees-list"],
@@ -93,7 +101,7 @@ function EmployeesPage() {
                 <Select name="role" defaultValue="sales">
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {Object.entries(ROLE_LABEL).map(([v, l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}
+                    {roleOptions.map(([v, l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
@@ -119,9 +127,11 @@ function EmployeesPage() {
                 <td className="p-3">{ROLE_LABEL[e.role] ?? "—"}</td>
                 <td className="p-3 text-muted-foreground">{e.profile?.phone ?? "—"}</td>
                 <td className="p-3 text-left">
-                  <Button size="icon" variant="ghost" onClick={() => confirm("حذف الموظف؟") && remove.mutate(e.user_id)}>
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
+                  {(callerIsAdmin || e.role !== "admin") && (
+                    <Button size="icon" variant="ghost" onClick={() => confirm("حذف الموظف؟") && remove.mutate(e.user_id)}>
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  )}
                 </td>
               </tr>
             ))}
