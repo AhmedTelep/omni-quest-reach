@@ -299,6 +299,9 @@ const ProjectInput = z.object({
   color: z.string().regex(/^#[0-9a-fA-F]{6}$/).default("#1d4ed8"),
   total_units: z.number().int().min(0).max(100000).default(0),
   images: z.array(z.string().url().max(2000)).max(50).optional().default([]),
+  city: z.string().max(120).nullable().optional(),
+  latitude: z.number().min(-90).max(90).nullable().optional(),
+  longitude: z.number().min(-180).max(180).nullable().optional(),
   spaces: z
     .array(
       z.object({
