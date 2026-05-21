@@ -17,8 +17,15 @@ function LoginPage() {
     e.preventDefault();
     setLoading(true);
     const fd = new FormData(e.currentTarget);
+    let email = String(fd.get("email")).trim();
+    // Resident shortcut: allow "unit-A01" or just "A01" → unit-a01@resident.local
+    if (!email.includes("@")) {
+      const raw = email.toLowerCase().replace(/^unit-/, "");
+      const slug = raw.replace(/[^a-z0-9]/g, "-");
+      email = `unit-${slug}@resident.local`;
+    }
     const { data, error } = await supabase.auth.signInWithPassword({
-      email: String(fd.get("email")),
+      email,
       password: String(fd.get("password")),
     });
     if (error) {
@@ -52,8 +59,8 @@ function LoginPage() {
         <CardContent>
           <form className="space-y-4" onSubmit={handleLogin} dir="rtl">
             <div className="space-y-2">
-              <Label htmlFor="email">البريد الإلكتروني</Label>
-              <Input id="email" name="email" type="email" required dir="ltr" />
+              <Label htmlFor="email">البريد الإلكتروني أو رقم الوحدة</Label>
+              <Input id="email" name="email" type="text" required dir="ltr" placeholder="example@x.com  أو  unit-A01" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">كلمة المرور</Label>
