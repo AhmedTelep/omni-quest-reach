@@ -18,6 +18,15 @@ async function assertCallerIsAdmin(userId: string) {
   }
 }
 
+/** Returns true if the user has the 'admin' role. */
+async function userIsAdmin(userId: string): Promise<boolean> {
+  const { data } = await supabaseAdmin
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", userId);
+  return (data ?? []).some((r) => r.role === "admin");
+}
+
 /**
  * Bootstrap the very first admin. Only works when there are zero users with the admin role.
  * After that the endpoint refuses to create new admins.
