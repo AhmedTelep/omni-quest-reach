@@ -21,7 +21,12 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, Pencil } from "lucide-react";
+import { Plus, Trash2, Pencil, Copy } from "lucide-react";
+
+function residentLogin(unitNumber: string) {
+  const slug = String(unitNumber).toLowerCase().replace(/[^a-z0-9]/g, "-");
+  return `unit-${slug}`;
+}
 
 export const Route = createFileRoute("/_authenticated/residents")({ component: ResidentsPage });
 
@@ -241,6 +246,20 @@ function ResidentsPage() {
                 <td className="p-3 text-muted-foreground">{r.projects?.name_ar ?? "—"}</td>
                 <td className="p-3 text-muted-foreground">{r.phone ?? "—"}</td>
                 <td className="p-3 text-left">
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    title="نسخ بيانات الدخول"
+                    onClick={() => {
+                      const login = residentLogin(r.unit_number);
+                      navigator.clipboard.writeText(
+                        `بيانات الدخول\nاسم المستخدم: ${login}\n(استخدم كلمة المرور التي تم إنشاؤها)`,
+                      );
+                      toast.success(`تم نسخ: ${login}`);
+                    }}
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
                   <Button size="icon" variant="ghost" onClick={() => setEditing(r)}>
                     <Pencil className="h-4 w-4" />
                   </Button>
