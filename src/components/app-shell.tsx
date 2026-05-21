@@ -32,11 +32,11 @@ import { toast } from "sonner";
 type NavItem = { to: string; label: string; icon: React.ComponentType<{ className?: string }>; roles: AppRole[] };
 
 const NAV: NavItem[] = [
-  { to: "/dashboard", label: "الرئيسية", icon: LayoutDashboard, roles: ["admin", "manager", "sales_manager", "sales", "accountant"] },
-  { to: "/projects", label: "المشاريع", icon: Building2, roles: ["admin", "manager"] },
+  { to: "/dashboard", label: "الرئيسية", icon: LayoutDashboard, roles: ["admin", "manager", "sales_manager", "sales", "accountant", "resident"] },
+  { to: "/projects", label: "المشاريع", icon: Building2, roles: ["admin", "manager", "sales_manager"] },
   { to: "/units", label: "الوحدات", icon: Home, roles: ["admin", "manager", "sales_manager", "sales"] },
   { to: "/residents", label: "السكان", icon: Users, roles: ["admin", "manager", "sales_manager", "sales"] },
-  { to: "/requests", label: "طلبات الصيانة", icon: Wrench, roles: ["admin", "manager", "sales_manager", "sales", "accountant"] },
+  { to: "/requests", label: "طلبات الصيانة", icon: Wrench, roles: ["admin", "manager", "sales_manager", "sales"] },
   { to: "/installments", label: "الأقساط", icon: Receipt, roles: ["admin", "manager", "sales_manager", "accountant"] },
   { to: "/services", label: "أنواع الخدمات", icon: SettingsIcon, roles: ["admin", "manager"] },
   { to: "/employees", label: "الموظفين", icon: UserCog, roles: ["admin", "manager"] },
