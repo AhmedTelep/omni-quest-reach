@@ -1,104 +1,87 @@
 
-# نظام التنبيهات والإشعارات
+# إعادة تصميم النظام بأسلوب "X REAL ESTATE"
 
-## 1) قاعدة البيانات (migration واحد)
+## 1. نظام الألوان (`src/styles.css`)
 
-### جدول `notifications`
-```
-id uuid PK
-user_id uuid (المستلم — auth user)
-type text  (installment_new | installment_due_soon | installment_confirmed | installment_rejected |
-            request_new | request_status_changed | resident_added | announcement | ...)
-title text
-body text
-link text  (مسار داخلي للنقر — مثلا /my-installments)
-metadata jsonb  (installment_id / request_id / project_id ...)
-is_read boolean default false
-created_at timestamptz
-```
-- RLS: المستخدم يقرأ/يحدّث (is_read) إشعاراته فقط. الإدراج عبر SECURITY DEFINER triggers أو server functions فقط.
-- Index على `(user_id, is_read, created_at desc)`.
-- إضافة الجدول إلى `supabase_realtime` publication + `REPLICA IDENTITY FULL`.
+تحديث الـ design tokens لـ:
 
-### جدول `announcements` (الإعلانات اليدوية)
-```
-id, title, body, audience (all|residents|employees|role:<role>|project:<uuid>),
-created_by, created_at
-```
-- بعد الإدراج: trigger يولّد صفوف `notifications` لكل مستخدم في الجمهور المستهدف.
+**Light (افتراضي)**
+- `--background`: أبيض/رمادي فاتح جداً مع نقاط خفيفة (grid pattern)
+- `--card`: أبيض نقي
+- `--primary` / accent: **Electric Cyan** `oklch(0.72 0.15 200)` (#06b6d4)
+- `--primary-glow`: cyan فاتح متوهج للأزرار النشطة
+- `--sidebar`: داكن جداً `oklch(0.15 0.03 240)` (navy/black) — السايدبار **دائماً داكن** حتى في light mode (مطابق للصورة)
+- `--sidebar-foreground`: فاتح
+- `--sidebar-accent`: cyan متوهج
 
-### Triggers (SECURITY DEFINER) تولّد إشعارات تلقائياً:
-1. `installments AFTER INSERT` → إشعار للساكن صاحب الـ resident_id (installment_new).
-2. `installments AFTER UPDATE` على payment_status:
-   - `pending_confirmation` → إشعار لكل المحاسبين والأدمن (installment_pending_review).
-   - `confirmed` / `rejected` → إشعار للساكن.
-3. `maintenance_requests AFTER INSERT` → إشعار للأدمن/المدير/sales/sales_manager (request_new).
-4. `maintenance_requests AFTER UPDATE` على status → إشعار للساكن (request_status_changed).
-5. `residents AFTER INSERT` → إشعار للأدمن/المدير.
-6. `announcements AFTER INSERT` → إشعارات للجمهور.
+**Dark**
+- `--background`: navy غامق `oklch(0.12 0.02 240)`
+- `--card`: navy أفتح قليلاً
+- accents نفسها
 
-### Cron يومي (pg_cron) لتذكيرات الأقساط
-- يفحص الأقساط غير المدفوعة المستحقة خلال 3 أيام/اليوم/متأخرة، ويولّد إشعارات `installment_due_soon` / `installment_overdue` (مرة واحدة في اليوم لكل قسط — جدول مساعد `notification_dedup` أو فحص `notifications` بنفس الـ metadata + اليوم).
+**Gradients & shadows جديدة (tokens)**
+- `--gradient-stat-blue`, `--gradient-stat-green`, `--gradient-stat-orange`, `--gradient-stat-purple` — للكروت
+- `--gradient-cyan-glow` — لزر تسجيل الخروج
+- `--shadow-glow-cyan` — توهج حول العناصر النشطة
+- `--shadow-card` — ظل ناعم للكروت
+- grid background pattern عبر `background-image: radial-gradient(...)` على `<main>`
 
-## 2) الواجهة (Frontend)
+## 2. ThemeProvider جديد
 
-### Hook: `useNotifications()`
-- جلب آخر 30 إشعار + عدد غير المقروء.
-- اشتراك realtime على `notifications` filter بـ `user_id=eq.<me>` → invalidate query + toast (sonner) للجديد.
+ملف `src/components/theme-provider.tsx`:
+- يخزّن الثيم في `localStorage` (`theme: light | dark`)
+- يضيف/يزيل class `dark` على `<html>`
+- يصدّر `useTheme()` hook
+- الافتراضي: **light**
 
-### مكوّن `NotificationBell` في `app-shell.tsx` (header)
-- أيقونة جرس + Badge بعدد غير المقروء.
-- Popover يعرض القائمة: عنوان + نص مختصر + وقت نسبي + نقطة "غير مقروء".
-- زر "تعليم الكل كمقروء".
-- النقر على إشعار → علّمه مقروء + انتقل إلى `link`.
+تطبيقه في `src/router.tsx` أو `__root.tsx` بحيث يلف التطبيق.
 
-### صفحة `/_authenticated/notifications`
-- قائمة كاملة بكل الإشعارات مع تصفية (الكل / غير مقروء / حسب النوع).
+زر التبديل (أيقونة قمر/شمس) في التوب بار يسار.
 
-### صفحة `/_authenticated/announcements` (للأدمن/المدير فقط)
-- نموذج: عنوان + نص + اختيار الجمهور (الكل / السكان / الموظفين / دور محدد / مشروع محدد).
-- قائمة الإعلانات السابقة.
+## 3. إعادة بناء `src/components/app-shell.tsx`
 
-### تكامل مع باقي الصفحات
-- إضافة إدخال "الإشعارات" في sidebar لكل الأدوار.
-- إضافة "الإعلانات" في sidebar للأدمن/المدير فقط.
+**السايدبار (يمين، RTL)** — `w-72`، خلفية `bg-sidebar` داكنة، يحتوي:
+1. **شعار الشركة**: أيقونة مبنى دائرية بخلفية cyan متوهجة + نص "X REAL ESTATE" + سطر صغير "للعقارات الذكية".
+2. **كارت المستخدم**: avatar دائري بـ gradient cyan، اسم، إيميل.
+3. **Select المشروع الحالي**: مع label "المشروع الحالي".
+4. **روابط NAV**: زر مستطيل، النشط بخلفية cyan/teal متوهجة (`shadow-glow-cyan`) + نص داكن، غير النشط بنص فاتح + أيقونة يمين.
+5. **زر تسجيل الخروج**: أسفل، عرض كامل، خلفية بـ gradient cyan متوهج + أيقونة.
 
-## 3) قنوات إضافية
+**التوب بار**:
+- يسار: زر تبديل ثيم (Moon/Sun icon).
+- النص: شريط بحث عريض (input + أيقونة Search) — placeholder "البحث".
+- يمين: `NotificationBell` (الموجود حالياً) مع نقطة حمراء.
+- خلفية شفافة/blur خفيف، حد سفلي رفيع.
 
-### بريد إلكتروني (Lovable Emails)
-- إعداد البنية التحتية للبريد (`setup_email_infra`) + قالب transactional.
-- Server function `sendNotificationEmail` تُستدعى من نفس الـ triggers (عبر `pg_net` على edge function — أو من server functions عند الإنشاء بدل الـ trigger).
-- المستخدم يقدر يعطّل البريد لنوع معين من صفحة "إعدادات الإشعارات".
+**Main**: padding أكبر، خلفية بنقاط خفيفة (dot grid pattern).
 
-### WhatsApp
-- يحتاج مزود (Twilio أو wa.me). نقترح **مرحلة لاحقة**: زر "إرسال على واتساب" بجوار كل إشعار/قسط يفتح `wa.me/<phone>?text=...` بدون أي مفاتيح API. لو احتجت إرسال آلي فعلي → نضيف Twilio connector في خطوة منفصلة (يحتاج موافقتك وإضافة secrets).
+## 4. صفحة الداشبورد `src/routes/_authenticated/dashboard.tsx`
 
-### تفضيلات المستخدم (اختياري - مرحلة 2)
-- جدول `notification_preferences (user_id, type, in_app bool, email bool)`.
-- صفحة "إعدادات الإشعارات".
+- **هيدر الصفحة**: عنوان كبير "لوحة التحكم" بخط ثقيل + سطر وصف رمادي تحته.
+- **شبكة 2×2 من الكروت** (responsive: 1 col mobile, 2 cols desktop):
+  - كل كارت: ارتفاع ~140px، `rounded-2xl`، خلفية gradient (أزرق/أخضر/برتقالي/بنفسجي بشفافية)، أيقونة دائرية يمين أعلى داخل دائرة شفافة، نص العنوان أعلى يمين، رقم ضخم (text-5xl bold) أسفل يمين، **sparkline SVG** على اليسار (خط منحني بسيط بلون الكارت).
+  - الكروت: المشاريع (أزرق)، السكان (أخضر)، طلبات صيانة مفتوحة (برتقالي)، أقساط بانتظار التأكيد (بنفسجي).
+- إعادة استخدام queries الموجودة لجلب الأرقام.
 
-## 4) ملفات سيتم تعديلها/إنشاؤها
+مكوّن `StatCard` جديد في `src/components/stat-card.tsx` بـ props: `title, value, icon, variant: 'blue'|'green'|'orange'|'purple', sparklineData?`.
 
-**Migration:**
-- جدول `notifications` + RLS + realtime
-- جدول `announcements` + RLS
-- جدول `notification_dedup` (للـ cron)
-- 6 triggers + دوال SECURITY DEFINER
-- pg_cron job يومي للتذكيرات
+## 5. تنسيق صفحات داخلية
 
-**Frontend جديد:**
-- `src/hooks/use-notifications.ts`
-- `src/components/notification-bell.tsx`
-- `src/routes/_authenticated/notifications.tsx`
-- `src/routes/_authenticated/announcements.tsx`
+تحديث `Card`, `Button`, `Input`, `Table` لتستخدم نفس الـ tokens الجديدة — لن نلمس بنية الصفحات الأخرى، فقط الـ tokens تطبّق تلقائياً عليها لأنها كلها تستخدم semantic classes.
 
-**تعديلات:**
-- `src/components/app-shell.tsx` (إضافة الجرس + روابط sidebar)
-- `.lovable/plan.md` (تحديث)
+## 6. صفحة Login
 
-**بريد (مرحلة 2 من نفس الخطة):**
-- `setup_email_infra` + `scaffold_transactional_email`
-- استدعاء البريد من server functions الجديدة (بدل triggers مباشرة) لأنواع مختارة (تأكيد قسط/رفض/إعلان).
+تحديث `src/routes/login.tsx` بنفس الطابع: خلفية بنقاط، كارت توسّط بظل ناعم، شعار "X REAL ESTATE" بأيقونة دائرية cyan في الأعلى.
 
-## نقطة قرار
-هل أبدأ بالتنفيذ كاملاً (داخل التطبيق + realtime + إعلانات + cron + بريد)؟ أم نبدأ بالمرحلة 1 (داخل التطبيق + realtime + إعلانات) ثم نضيف البريد بعد التأكد من السلوك؟
+## الملفات المتأثرة
+
+- ✏️ `src/styles.css` — tokens جديدة كاملة
+- ➕ `src/components/theme-provider.tsx`
+- ➕ `src/components/theme-toggle.tsx`
+- ➕ `src/components/stat-card.tsx`
+- ✏️ `src/components/app-shell.tsx` — إعادة بناء كامل للسايدبار والتوب بار
+- ✏️ `src/routes/_authenticated/dashboard.tsx` — استخدام StatCard + sparklines
+- ✏️ `src/routes/login.tsx` — توحيد الطابع
+- ✏️ `src/router.tsx` أو `__root.tsx` — ThemeProvider
+
+النتيجة: نظام موحّد بطابع "X REAL ESTATE" — أنيق، داكن/فاتح، accent cyan متوهج، كروت ملوّنة بـ gradients، RTL كامل.
