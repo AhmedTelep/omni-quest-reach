@@ -1,88 +1,104 @@
 
-# خطة: مراجعة الصلاحيات + Dashboard الساكن
+# نظام التنبيهات والإشعارات
 
-## 1) ضبط صلاحيات الموظفين
+## 1) قاعدة البيانات (migration واحد)
 
-### تعديل الـ Sidebar (`src/components/app-shell.tsx`)
-إعادة تعريف القوائم لكل دور بدقة:
-
-| الصفحة | admin | manager | sales_manager | sales | accountant |
-|---|---|---|---|---|---|
-| الرئيسية | ✅ | ✅ | ✅ | ✅ | ✅ (مبسطة) |
-| المشاريع | ✅ | ✅ | ✅ | ❌ | ❌ |
-| الوحدات | ✅ | ✅ | ✅ | ✅ | ❌ |
-| السكان | ✅ | ✅ | ✅ | ✅ | ❌ |
-| طلبات الصيانة | ✅ | ✅ | ✅ | ✅ | ❌ |
-| الأقساط | ✅ | ✅ | ✅ (read-only) | ❌ | ✅ |
-| أنواع الخدمات | ✅ | ✅ | ❌ | ❌ | ❌ |
-| الموظفين | ✅ | ✅ (بدون admin) | ❌ | ❌ | ❌ |
-
-### ضبط داخل الصفحات
-- **`installments.tsx`**: إخفاء زر "إضافة قسط" + أزرار التأكيد/الرفض عن `sales_manager`. هو يشوف القائمة فقط.
-- **`employees.tsx`**: المدير (manager) لا يرى خيار دور "admin" في الـ Select ولا يقدر يحذف/يعدّل أدمن.
-- **Dashboard الرئيسي**: للمحاسب نعرض كروت إحصائيات أقساط فقط (مدفوع/مستحق/بانتظار التأكيد).
-
-### ضبط server-side
-- **`createEmployee`**: لو الـ caller `manager` فقط (مش `admin`) ولـ `role` المطلوب = `admin` → رفض.
-- **`deleteUser` / `resetUserPassword`**: نفس المنطق — `manager` لا يقدر يلمس أدمن.
-- **`createInstallment`** + **`decideInstallment`**: تأكيد أن `sales_manager` مش ضمن المسموح لهم في إنشاء/تأكيد الأقساط (مراجعة المنطق الحالي).
-
-## 2) إضافة "المدينة" للمشاريع (للطقس)
-
-### Migration
+### جدول `notifications`
 ```
-ALTER TABLE projects ADD COLUMN city text;
-ALTER TABLE projects ADD COLUMN latitude numeric;
-ALTER TABLE projects ADD COLUMN longitude numeric;
+id uuid PK
+user_id uuid (المستلم — auth user)
+type text  (installment_new | installment_due_soon | installment_confirmed | installment_rejected |
+            request_new | request_status_changed | resident_added | announcement | ...)
+title text
+body text
+link text  (مسار داخلي للنقر — مثلا /my-installments)
+metadata jsonb  (installment_id / request_id / project_id ...)
+is_read boolean default false
+created_at timestamptz
 ```
-- `city`: اسم المدينة (للعرض)
-- `lat/lng`: نملأها تلقائياً من Open-Meteo geocoding API بعد إدخال المدينة (مجاني، بدون مفتاح).
+- RLS: المستخدم يقرأ/يحدّث (is_read) إشعاراته فقط. الإدراج عبر SECURITY DEFINER triggers أو server functions فقط.
+- Index على `(user_id, is_read, created_at desc)`.
+- إضافة الجدول إلى `supabase_realtime` publication + `REPLICA IDENTITY FULL`.
 
-### تعديل `projects.tsx` + `admin-users.functions.ts`
-- إضافة حقل "المدينة" في نموذج المشروع.
-- عند الحفظ: نداء geocoding وتخزين lat/lng.
+### جدول `announcements` (الإعلانات اليدوية)
+```
+id, title, body, audience (all|residents|employees|role:<role>|project:<uuid>),
+created_by, created_at
+```
+- بعد الإدراج: trigger يولّد صفوف `notifications` لكل مستخدم في الجمهور المستهدف.
 
-## 3) إعادة بناء Dashboard الساكن (`dashboard.tsx`)
+### Triggers (SECURITY DEFINER) تولّد إشعارات تلقائياً:
+1. `installments AFTER INSERT` → إشعار للساكن صاحب الـ resident_id (installment_new).
+2. `installments AFTER UPDATE` على payment_status:
+   - `pending_confirmation` → إشعار لكل المحاسبين والأدمن (installment_pending_review).
+   - `confirmed` / `rejected` → إشعار للساكن.
+3. `maintenance_requests AFTER INSERT` → إشعار للأدمن/المدير/sales/sales_manager (request_new).
+4. `maintenance_requests AFTER UPDATE` على status → إشعار للساكن (request_status_changed).
+5. `residents AFTER INSERT` → إشعار للأدمن/المدير.
+6. `announcements AFTER INSERT` → إشعارات للجمهور.
 
-عند `isResident`، نعرض صفحة كاملة بدل النص الفارغ الحالي. الأقسام:
+### Cron يومي (pg_cron) لتذكيرات الأقساط
+- يفحص الأقساط غير المدفوعة المستحقة خلال 3 أيام/اليوم/متأخرة، ويولّد إشعارات `installment_due_soon` / `installment_overdue` (مرة واحدة في اليوم لكل قسط — جدول مساعد `notification_dedup` أو فحص `notifications` بنفس الـ metadata + اليوم).
 
-### أ) كارت بيانات الوحدة
-- رقم الوحدة، اسم المشروع، السعر الإجمالي.
+## 2) الواجهة (Frontend)
 
-### ب) ملخص مالي
-- إجمالي مدفوع (مجموع الأقساط `confirmed`) / إجمالي مستحق / متبقي من سعر الوحدة.
-- شريط تقدم بصري.
+### Hook: `useNotifications()`
+- جلب آخر 30 إشعار + عدد غير المقروء.
+- اشتراك realtime على `notifications` filter بـ `user_id=eq.<me>` → invalidate query + toast (sonner) للجديد.
 
-### ج) معرض صور المشروع
-- carousel بسيط لصور `projects.images`.
+### مكوّن `NotificationBell` في `app-shell.tsx` (header)
+- أيقونة جرس + Badge بعدد غير المقروء.
+- Popover يعرض القائمة: عنوان + نص مختصر + وقت نسبي + نقطة "غير مقروء".
+- زر "تعليم الكل كمقروء".
+- النقر على إشعار → علّمه مقروء + انتقل إلى `link`.
 
-### د) مساحات المشروع
-- شارات (badges) من `projects.spaces`: مسبح، جيم...
+### صفحة `/_authenticated/notifications`
+- قائمة كاملة بكل الإشعارات مع تصفية (الكل / غير مقروء / حسب النوع).
 
-### هـ) طلبات الصيانة المفتوحة
-- آخر 3 طلبات للساكن مع حالتها + رابط "كل طلباتي".
+### صفحة `/_authenticated/announcements` (للأدمن/المدير فقط)
+- نموذج: عنوان + نص + اختيار الجمهور (الكل / السكان / الموظفين / دور محدد / مشروع محدد).
+- قائمة الإعلانات السابقة.
 
-### و) الأقساط القادمة
-- أقرب قسطين غير مدفوعين + رابط "كل أقساطي".
+### تكامل مع باقي الصفحات
+- إضافة إدخال "الإشعارات" في sidebar لكل الأدوار.
+- إضافة "الإعلانات" في sidebar للأدمن/المدير فقط.
 
-### ز) كارت الطقس
-- جلب من `https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lng}&current=temperature_2m,weather_code` باستخدام lat/lng من المشروع.
-- لو المشروع مفيش له إحداثيات → نخفي الكارت بهدوء.
-- عرض: الحرارة الحالية + أيقونة الحالة + اسم المدينة.
+## 3) قنوات إضافية
 
-## التفاصيل التقنية
+### بريد إلكتروني (Lovable Emails)
+- إعداد البنية التحتية للبريد (`setup_email_infra`) + قالب transactional.
+- Server function `sendNotificationEmail` تُستدعى من نفس الـ triggers (عبر `pg_net` على edge function — أو من server functions عند الإنشاء بدل الـ trigger).
+- المستخدم يقدر يعطّل البريد لنوع معين من صفحة "إعدادات الإشعارات".
 
-- لا migrations حساسة على RLS (الأعمدة الجديدة ترث RLS الحالي للمشاريع).
-- جلب الطقس يتم client-side مباشرة من المتصفح (Open-Meteo CORS-enabled، بدون مفتاح، بدون server function).
-- استعلامات Dashboard الساكن نستخدم `useQuery` متعددة وموازية (`Promise.all` غير ضروري لأن React Query يوازي بطبيعته).
-- لا تغييرات على ملفات auto-generated (`types.ts`, `client.ts`).
-- تعديلات قواعد البيانات: migration واحد فقط (3 أعمدة على `projects`).
+### WhatsApp
+- يحتاج مزود (Twilio أو wa.me). نقترح **مرحلة لاحقة**: زر "إرسال على واتساب" بجوار كل إشعار/قسط يفتح `wa.me/<phone>?text=...` بدون أي مفاتيح API. لو احتجت إرسال آلي فعلي → نضيف Twilio connector في خطوة منفصلة (يحتاج موافقتك وإضافة secrets).
 
-## ملفات سيتم تعديلها
-- `supabase/migrations/<new>.sql` — أعمدة city/lat/lng
-- `src/lib/admin-users.functions.ts` — حماية manager من admin، schema المشروع
-- `src/components/app-shell.tsx` — قوائم navigation الجديدة
-- `src/routes/_authenticated/dashboard.tsx` — Dashboard الساكن + كارت المحاسب
-- `src/routes/_authenticated/installments.tsx` — إخفاء أزرار للـ sales_manager
-- `src/routes/_authenticated/employees.tsx` — منع manager من admin
-- `src/routes/_authenticated/projects.tsx` — حقل المدينة + geocoding
+### تفضيلات المستخدم (اختياري - مرحلة 2)
+- جدول `notification_preferences (user_id, type, in_app bool, email bool)`.
+- صفحة "إعدادات الإشعارات".
+
+## 4) ملفات سيتم تعديلها/إنشاؤها
+
+**Migration:**
+- جدول `notifications` + RLS + realtime
+- جدول `announcements` + RLS
+- جدول `notification_dedup` (للـ cron)
+- 6 triggers + دوال SECURITY DEFINER
+- pg_cron job يومي للتذكيرات
+
+**Frontend جديد:**
+- `src/hooks/use-notifications.ts`
+- `src/components/notification-bell.tsx`
+- `src/routes/_authenticated/notifications.tsx`
+- `src/routes/_authenticated/announcements.tsx`
+
+**تعديلات:**
+- `src/components/app-shell.tsx` (إضافة الجرس + روابط sidebar)
+- `.lovable/plan.md` (تحديث)
+
+**بريد (مرحلة 2 من نفس الخطة):**
+- `setup_email_infra` + `scaffold_transactional_email`
+- استدعاء البريد من server functions الجديدة (بدل triggers مباشرة) لأنواع مختارة (تأكيد قسط/رفض/إعلان).
+
+## نقطة قرار
+هل أبدأ بالتنفيذ كاملاً (داخل التطبيق + realtime + إعلانات + cron + بريد)؟ أم نبدأ بالمرحلة 1 (داخل التطبيق + realtime + إعلانات) ثم نضيف البريد بعد التأكد من السلوك؟
