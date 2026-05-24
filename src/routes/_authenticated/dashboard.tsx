@@ -7,6 +7,7 @@ import { useAuthSession, useUserRoles } from "@/hooks/use-auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Building2, Users, Wrench, Receipt, Home, Wallet, Cloud, MapPin, ImageIcon } from "lucide-react";
+import { StatCard } from "@/components/stat-card";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   component: DashboardPage,
@@ -64,34 +65,20 @@ function DashboardPage() {
     return <AccountantDashboard projectId={projectId} />;
   }
 
-  const items = [
-    { label: "المشاريع", value: stats.data?.projects ?? 0, icon: Building2, color: "text-blue-600" },
-    { label: "السكان", value: stats.data?.residents ?? 0, icon: Users, color: "text-emerald-600" },
-    { label: "طلبات صيانة مفتوحة", value: stats.data?.openRequests ?? 0, icon: Wrench, color: "text-amber-600" },
-    { label: "أقساط بانتظار التأكيد", value: stats.data?.pendingInstallments ?? 0, icon: Receipt, color: "text-purple-600" },
-  ];
-
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">لوحة التحكم</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
+    <div className="space-y-8">
+      <div className="text-end">
+        <h1 className="text-3xl font-extrabold tracking-tight md:text-4xl">لوحة التحكم</h1>
+        <p className="mt-2 text-sm text-muted-foreground">
           نظرة عامة على بيانات النظام {projectId ? "للمشروع المختار" : "لكل المشاريع"}
         </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {items.map((it) => (
-          <Card key={it.label}>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">{it.label}</CardTitle>
-              <it.icon className={`h-5 w-5 ${it.color}`} />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">{it.value}</div>
-            </CardContent>
-          </Card>
-        ))}
+      <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+        <StatCard title="المشاريع" value={stats.data?.projects ?? 0} icon={Building2} variant="blue" />
+        <StatCard title="السكان" value={stats.data?.residents ?? 0} icon={Users} variant="green" />
+        <StatCard title="طلبات صيانة مفتوحة" value={stats.data?.openRequests ?? 0} icon={Wrench} variant="orange" />
+        <StatCard title="أقساط بانتظار التأكيد" value={stats.data?.pendingInstallments ?? 0} icon={Receipt} variant="purple" />
       </div>
     </div>
   );
