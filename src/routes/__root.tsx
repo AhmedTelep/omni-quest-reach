@@ -11,6 +11,7 @@ import {
 import appCss from "../styles.css?url";
 import { Toaster } from "@/components/ui/sonner";
 import { ProjectProvider } from "@/contexts/project-context";
+import { ThemeProvider } from "@/components/theme-provider";
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -130,10 +131,12 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <ProjectProvider>
-        <Outlet />
-        <Toaster richColors position="top-center" />
-      </ProjectProvider>
+      <ThemeProvider>
+        <ProjectProvider>
+          <Outlet />
+          <Toaster richColors position="top-center" />
+        </ProjectProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }
