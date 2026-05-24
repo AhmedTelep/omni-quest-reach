@@ -28,6 +28,8 @@ import {
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useState } from "react";
 import { toast } from "sonner";
+import { NotificationBell } from "@/components/notification-bell";
+import { Bell, Megaphone } from "lucide-react";
 
 type NavItem = { to: string; label: string; icon: React.ComponentType<{ className?: string }>; roles: AppRole[] };
 
@@ -40,6 +42,8 @@ const NAV: NavItem[] = [
   { to: "/installments", label: "الأقساط", icon: Receipt, roles: ["admin", "manager", "sales_manager", "accountant"] },
   { to: "/services", label: "أنواع الخدمات", icon: SettingsIcon, roles: ["admin", "manager"] },
   { to: "/employees", label: "الموظفين", icon: UserCog, roles: ["admin", "manager"] },
+  { to: "/announcements", label: "الإعلانات", icon: Megaphone, roles: ["admin", "manager"] },
+  { to: "/notifications", label: "الإشعارات", icon: Bell, roles: ["admin", "manager", "sales_manager", "sales", "accountant", "resident"] },
   { to: "/my-requests", label: "طلباتي", icon: ClipboardList, roles: ["resident"] },
   { to: "/my-installments", label: "أقساطي", icon: Wallet, roles: ["resident"] },
 ];
@@ -131,20 +135,22 @@ export function AppShell() {
       <aside className="hidden w-64 shrink-0 border-l bg-card lg:block">{SidebarBody}</aside>
 
       <div className="flex flex-1 flex-col">
-        {/* Top bar (mobile) */}
-        <header className="flex items-center justify-between border-b bg-card px-4 py-3 lg:hidden">
-          <Sheet open={open} onOpenChange={setOpen}>
-            <SheetTrigger asChild>
-              <Button variant="ghost" size="icon">
-                <Menu className="h-5 w-5" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="right" className="w-72 p-0">
-              {SidebarBody}
-            </SheetContent>
-          </Sheet>
-          <h1 className="text-base font-semibold">X</h1>
-          <div className="w-9" />
+        {/* Top bar */}
+        <header className="flex items-center justify-between border-b bg-card px-4 py-3">
+          <div className="flex items-center gap-2">
+            <Sheet open={open} onOpenChange={setOpen}>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="lg:hidden">
+                  <Menu className="h-5 w-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-72 p-0">
+                {SidebarBody}
+              </SheetContent>
+            </Sheet>
+            <h1 className="text-base font-semibold lg:hidden">X</h1>
+          </div>
+          <NotificationBell />
         </header>
 
         <main className="flex-1 p-4 md:p-6">
