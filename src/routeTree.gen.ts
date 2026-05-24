@@ -17,6 +17,7 @@ import { Route as AuthenticatedServicesRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedResidentsRouteImport } from './routes/_authenticated/residents'
 import { Route as AuthenticatedRequestsRouteImport } from './routes/_authenticated/requests'
 import { Route as AuthenticatedProjectsRouteImport } from './routes/_authenticated/projects'
+import { Route as AuthenticatedNotificationsRouteImport } from './routes/_authenticated/notifications'
 import { Route as AuthenticatedMyRequestsRouteImport } from './routes/_authenticated/my-requests'
 import { Route as AuthenticatedMyInstallmentsRouteImport } from './routes/_authenticated/my-installments'
 import { Route as AuthenticatedInstallmentsRouteImport } from './routes/_authenticated/installments'
@@ -62,6 +63,12 @@ const AuthenticatedProjectsRoute = AuthenticatedProjectsRouteImport.update({
   path: '/projects',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedNotificationsRoute =
+  AuthenticatedNotificationsRouteImport.update({
+    id: '/notifications',
+    path: '/notifications',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedMyRequestsRoute = AuthenticatedMyRequestsRouteImport.update({
   id: '/my-requests',
   path: '/my-requests',
@@ -98,6 +105,7 @@ export interface FileRoutesByFullPath {
   '/installments': typeof AuthenticatedInstallmentsRoute
   '/my-installments': typeof AuthenticatedMyInstallmentsRoute
   '/my-requests': typeof AuthenticatedMyRequestsRoute
+  '/notifications': typeof AuthenticatedNotificationsRoute
   '/projects': typeof AuthenticatedProjectsRoute
   '/requests': typeof AuthenticatedRequestsRoute
   '/residents': typeof AuthenticatedResidentsRoute
@@ -112,6 +120,7 @@ export interface FileRoutesByTo {
   '/installments': typeof AuthenticatedInstallmentsRoute
   '/my-installments': typeof AuthenticatedMyInstallmentsRoute
   '/my-requests': typeof AuthenticatedMyRequestsRoute
+  '/notifications': typeof AuthenticatedNotificationsRoute
   '/projects': typeof AuthenticatedProjectsRoute
   '/requests': typeof AuthenticatedRequestsRoute
   '/residents': typeof AuthenticatedResidentsRoute
@@ -128,6 +137,7 @@ export interface FileRoutesById {
   '/_authenticated/installments': typeof AuthenticatedInstallmentsRoute
   '/_authenticated/my-installments': typeof AuthenticatedMyInstallmentsRoute
   '/_authenticated/my-requests': typeof AuthenticatedMyRequestsRoute
+  '/_authenticated/notifications': typeof AuthenticatedNotificationsRoute
   '/_authenticated/projects': typeof AuthenticatedProjectsRoute
   '/_authenticated/requests': typeof AuthenticatedRequestsRoute
   '/_authenticated/residents': typeof AuthenticatedResidentsRoute
@@ -144,6 +154,7 @@ export interface FileRouteTypes {
     | '/installments'
     | '/my-installments'
     | '/my-requests'
+    | '/notifications'
     | '/projects'
     | '/requests'
     | '/residents'
@@ -158,6 +169,7 @@ export interface FileRouteTypes {
     | '/installments'
     | '/my-installments'
     | '/my-requests'
+    | '/notifications'
     | '/projects'
     | '/requests'
     | '/residents'
@@ -173,6 +185,7 @@ export interface FileRouteTypes {
     | '/_authenticated/installments'
     | '/_authenticated/my-installments'
     | '/_authenticated/my-requests'
+    | '/_authenticated/notifications'
     | '/_authenticated/projects'
     | '/_authenticated/requests'
     | '/_authenticated/residents'
@@ -244,6 +257,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProjectsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/notifications': {
+      id: '/_authenticated/notifications'
+      path: '/notifications'
+      fullPath: '/notifications'
+      preLoaderRoute: typeof AuthenticatedNotificationsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/my-requests': {
       id: '/_authenticated/my-requests'
       path: '/my-requests'
@@ -288,6 +308,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedInstallmentsRoute: typeof AuthenticatedInstallmentsRoute
   AuthenticatedMyInstallmentsRoute: typeof AuthenticatedMyInstallmentsRoute
   AuthenticatedMyRequestsRoute: typeof AuthenticatedMyRequestsRoute
+  AuthenticatedNotificationsRoute: typeof AuthenticatedNotificationsRoute
   AuthenticatedProjectsRoute: typeof AuthenticatedProjectsRoute
   AuthenticatedRequestsRoute: typeof AuthenticatedRequestsRoute
   AuthenticatedResidentsRoute: typeof AuthenticatedResidentsRoute
@@ -301,6 +322,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedInstallmentsRoute: AuthenticatedInstallmentsRoute,
   AuthenticatedMyInstallmentsRoute: AuthenticatedMyInstallmentsRoute,
   AuthenticatedMyRequestsRoute: AuthenticatedMyRequestsRoute,
+  AuthenticatedNotificationsRoute: AuthenticatedNotificationsRoute,
   AuthenticatedProjectsRoute: AuthenticatedProjectsRoute,
   AuthenticatedRequestsRoute: AuthenticatedRequestsRoute,
   AuthenticatedResidentsRoute: AuthenticatedResidentsRoute,
@@ -320,3 +342,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
