@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Building } from "lucide-react";
 
 export const Route = createFileRoute("/login")({ component: LoginPage });
 
@@ -50,11 +51,26 @@ function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-primary/5 via-background to-accent/5 p-4">
-      <Card className="w-full max-w-md">
+    <div className="bg-dot-grid flex min-h-screen items-center justify-center bg-background p-4">
+      <Card
+        className="w-full max-w-md border-border/60"
+        style={{ boxShadow: "var(--shadow-card)" }}
+      >
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl">نظام إدارة الصيانة</CardTitle>
-          <CardDescription>سجل دخولك للوصول إلى لوحة التحكم</CardDescription>
+          <div className="mx-auto flex flex-col items-center gap-2">
+            <div
+              className="flex h-14 w-14 items-center justify-center rounded-2xl"
+              style={{
+                background: "var(--gradient-cyan-glow)",
+                boxShadow: "var(--shadow-glow-cyan)",
+                color: "var(--primary-foreground)",
+              }}
+            >
+              <Building className="h-7 w-7" />
+            </div>
+            <CardTitle className="mt-2 text-2xl font-extrabold tracking-wide">X REAL ESTATE</CardTitle>
+            <CardDescription>سجل دخولك للوصول إلى لوحة التحكم</CardDescription>
+          </div>
         </CardHeader>
         <CardContent>
           <form className="space-y-4" onSubmit={handleLogin} dir="rtl">
@@ -66,7 +82,16 @@ function LoginPage() {
               <Label htmlFor="password">كلمة المرور</Label>
               <Input id="password" name="password" type="password" required />
             </div>
-            <Button type="submit" className="w-full" disabled={loading}>
+            <Button
+              type="submit"
+              className="w-full font-semibold"
+              disabled={loading}
+              style={{
+                background: "var(--gradient-cyan-glow)",
+                color: "var(--primary-foreground)",
+                boxShadow: "var(--shadow-glow-cyan)",
+              }}
+            >
               {loading ? "جاري الدخول…" : "دخول"}
             </Button>
           </form>
