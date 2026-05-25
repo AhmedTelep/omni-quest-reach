@@ -237,6 +237,12 @@ export const updateInstallment = createServerFn({ method: "POST" })
         amount: z.number().positive().max(1_000_000_000).optional(),
         dueDate: z.string().min(1).optional(),
         description: z.string().max(500).optional(),
+        lateFeeAmount: z.number().min(0).optional(),
+        lateFeeTypeOverride: z.enum(["none","fixed","percent"]).nullable().optional(),
+        lateFeeValueOverride: z.number().min(0).nullable().optional(),
+        lateFeeGraceDaysOverride: z.number().int().min(0).max(3650).nullable().optional(),
+        lateFeeRecurrenceOverride: z.enum(["once","daily","weekly","monthly"]).nullable().optional(),
+        reminderDaysBeforeOverride: z.number().int().min(0).max(365).nullable().optional(),
       })
       .parse(input),
   )
@@ -249,11 +255,36 @@ export const updateInstallment = createServerFn({ method: "POST" })
     if (data.amount != null) patch.amount = data.amount;
     if (data.dueDate) patch.due_date = new Date(data.dueDate).toISOString();
     if (data.description !== undefined) patch.description = data.description || null;
+    if (data.lateFeeAmount !== undefined) patch.late_fee_amount = data.lateFeeAmount;
+    if (data.lateFeeTypeOverride !== undefined) patch.late_fee_type_override = data.lateFeeTypeOverride;
+    if (data.lateFeeValueOverride !== undefined) patch.late_fee_value_override = data.lateFeeValueOverride;
+    if (data.lateFeeGraceDaysOverride !== undefined) patch.late_fee_grace_days_override = data.lateFeeGraceDaysOverride;
+    if (data.lateFeeRecurrenceOverride !== undefined) patch.late_fee_recurrence_override = data.lateFeeRecurrenceOverride;
+    if (data.reminderDaysBeforeOverride !== undefined) patch.reminder_days_before_override = data.reminderDaysBeforeOverride;
     if (Object.keys(patch).length === 0) return { ok: true };
     const { error } = await supabaseAdmin
       .from("installments")
       .update(patch as never)
       .eq("id", data.installmentId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+/** Update schedule-level late-fee / reminder settings (admin/manager) */
+export const updateScheduleSettings = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z.object({ scheduleId: z.string().uuid() }).merge(lateFeeSettingsSchema).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const roles = await getRoles(context.userId);
+    if (!roles.some((r) => ["admin", "manager"].includes(r))) {
+      throw new Error("غير مصرح");
+    }
+    const { error } = await supabaseAdmin
+      .from("installment_schedules")
+      .update(settingsToColumns(data) as never)
+      .eq("id", data.scheduleId);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
