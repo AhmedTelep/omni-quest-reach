@@ -407,6 +407,9 @@ function ResidentDetailPage() {
                       <td className="p-3">
                         <div className="font-medium">{fmtMoney(amount)}</div>
                         {paid > 0 && <div className="text-xs text-emerald-600">مدفوع: {fmtMoney(paid)}</div>}
+                        {Number(it.late_fee_amount ?? 0) > 0 && (
+                          <div className="text-xs text-rose-600">غرامة: {fmtMoney(Number(it.late_fee_amount))}</div>
+                        )}
                       </td>
                       <td className="p-3 text-muted-foreground">{fmtDate(it.due_date)}</td>
                       <td className="p-3 text-muted-foreground">{fmtDate(it.paid_at)}</td>
