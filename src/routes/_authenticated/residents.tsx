@@ -342,7 +342,7 @@ function EditResidentForm({
   );
   // Ensure current unit is always present even if not in units table
   if (editing.unit_number && !options.some((u: any) => String(u.unit_number) === String(editing.unit_number))) {
-    options.unshift({ id: "current", unit_number: editing.unit_number, price: editing.unit_price });
+    options.unshift({ id: "current", unit_number: editing.unit_number, price: editing.unit_price, status: "sold" });
   }
   return (
             <form
