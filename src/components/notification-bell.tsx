@@ -27,7 +27,8 @@ export function NotificationBell() {
     if (!n.is_read) markRead.mutate(n.id);
     if (n.link) {
       setOpen(false);
-      navigate({ to: n.link });
+      const [path, hash] = n.link.split("#");
+      navigate({ to: path, hash: hash || undefined });
     }
   };
 
