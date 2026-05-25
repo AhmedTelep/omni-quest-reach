@@ -1,74 +1,68 @@
 
-## الهدف
-إضافة بند **غرامة تأخير** و**تذكير مسبق** قابلَين للتخصيص لكل ساكن عند إنشاء/تعديل جدول الأقساط، مع إشعار الساكن قبل موعد كل قسط بعدد الأيام المحدد، وتطبيق الغرامة تلقائياً على الأقساط المتأخرة.
+## 1) إعادة التسمية إلى x-project
 
-## التغييرات على قاعدة البيانات
+### إخفاء شارة "Edit with Lovable"
+- استدعاء `publish_settings--set_badge_visibility` بـ `hide_badge: true` (يتطلب Pro plan؛ سيُبلَّغ المستخدم لو الخطة لا تسمح).
 
-### 1) جدول `installment_schedules` — إضافة إعدادات افتراضية للجدول
-- `late_fee_type` — `text` — `"none" | "fixed" | "percent"` (افتراضي `none`)
-- `late_fee_value` — `numeric` (مبلغ ثابت أو نسبة مئوية)
-- `late_fee_grace_days` — `integer` (عدد أيام السماح بعد الاستحقاق قبل تفعيل الغرامة، افتراضي 0)
-- `late_fee_recurrence` — `text` — `"once" | "daily" | "weekly" | "monthly"` (افتراضي `once`)
-- `reminder_days_before` — `integer` (عدد الأيام قبل الاستحقاق لإرسال التذكير، افتراضي 3)
+### استبدال اسم "Lovable Cloud" في docs/
+- `docs/mobile-integration.md` و `docs/expo-integration.md`: استبدال كل ظهور للنص العربي/الإنجليزي "Lovable Cloud" / "Lovable" بـ **x-project** في الشرح والعناوين، مع الإبقاء على المسارات التقنية الداخلية كما هي (روابط Supabase، أسماء المتغيرات `VITE_SUPABASE_*`).
 
-### 2) جدول `installments` — إضافة حقول الغرامة على مستوى القسط
-- `late_fee_amount` — `numeric` افتراضي 0 (الغرامة المتراكمة الحالية)
-- `late_fee_applied_at` — `timestamptz` (آخر مرة طُبّقت فيها الغرامة)
-- إمكانية override يدوي على القسط لاحقاً (نفس الأعمدة الخمسة أعلاه كـ nullable للسماح بالتخصيص لكل قسط).
+ملاحظة: لن نلمس الملفات التالية لأنها بنية تحتية محمية أو ستكسر البناء:
+- `src/integrations/supabase/*` (auto-generated)
+- `package.json` / `vite.config.ts` / `bunfig.toml` (تستخدم اسم الحزمة `@lovable.dev/vite-tanstack-config`)
+- `LOVABLE_API_KEY` (secret مدمج مع AI Gateway)
 
-### 3) دالة `apply_installment_late_fees()`
-- تمرّ على كل الأقساط غير المدفوعة التي تجاوزت `due_date + grace_days`.
-- تحسب الغرامة حسب النوع (ثابت/نسبة) والتكرار (مرة/يومي/أسبوعي/شهري).
-- تحدّث `late_fee_amount` على القسط، وتُرسل إشعاراً للساكن بالغرامة الجديدة.
+## 2) فحص الأمان الكامل — المشاكل المكتشفة والمعالجة
 
-### 4) تحديث دالة `run_installment_reminders()` الموجودة
-- بدل الـ 3 أيام الثابتة، تستخدم `reminder_days_before` من جدول الساكن `installment_schedules`.
-- تشمل أيضاً تذكيراً بقيمة الغرامة المتوقعة إذا تأخر الدفع.
+### A. RLS Policies — مشاكل حرجة
 
-### 5) جدولة `pg_cron` (مرة يومياً)
-- استدعاء `apply_installment_late_fees()` + `run_installment_reminders()`.
+**A1. `notification_dedup` بدون أي سياسة SELECT** (warn)
+- المشكلة: RLS مفعّل لكن لا سياسة → أي قراءة من client تفشل صامتاً، وأي إضافة سياسة لاحقاً قد تُسرّب dedup keys.
+- الحل: إضافة سياسة صريحة `FOR ALL TO authenticated USING (false)` (الوصول فقط عبر SECURITY DEFINER functions كما هو معمول حالياً)، مع منع `INSERT/UPDATE/DELETE` من المستخدمين.
 
-## التغييرات على الواجهة
+**A2. سياسات Storage ناقصة (`receipts` bucket)** (warn)
+- الساكن لا يستطيع تعديل/استبدال إيصال رفعه بالخطأ.
+- الحل: إضافة سياسة `receipts_owner_update` بنطاق `auth.uid()::text = (storage.foldername(name))[1]`.
 
-### `src/components/installment-sheet-dialog.tsx`
-قسم جديد **"إعدادات الغرامة والتذكير"** يحتوي:
-- نوع الغرامة: لا يوجد / مبلغ ثابت / نسبة من القسط (Select)
-- قيمة الغرامة (Input number)
-- أيام السماح بعد الاستحقاق (Input number)
-- تكرار الغرامة (Select)
-- أيام التذكير المسبق قبل الاستحقاق (Input number)
+**A3. سياسة `project-images` UPDATE بدون WITH CHECK** (warn)
+- مدير يقدر يغيّر `bucket_id` لباكت آخر ويتجاوز سياساته.
+- الحل: إضافة `WITH CHECK (bucket_id = 'project-images' AND is_admin_or_manager(auth.uid()))`.
 
-تُحفظ في الجدول `installment_schedules` وتُورَّث للأقساط.
+**A4. الباكتات العامة (`project-logos`, `project-images`) تسمح بـ LISTING** (warn)
+- يمكن لأي زائر سرد كل الملفات.
+- الحل: تقييد سياسة SELECT العامة على `bucket_id` فقط دون السماح بقراءة object listing (تعديل storage.objects policy للسماح بـ GET المباشر للملفات الأفراد فقط، أو الاحتفاظ بها كما هي بعد تأكيد المستخدم أن السرد العام مقبول للشعارات).
 
-### `src/routes/_authenticated/residents_.$residentId.tsx`
-- عرض إعدادات الغرامة/التذكير الحالية للساكن مع زر "تعديل".
-- في صف كل قسط: عمود جديد "غرامة" يعرض `late_fee_amount` (إن وُجدت).
-- دايلوج تعديل القسط: إضافة override للغرامة لهذا القسط فقط.
-- الإجمالي المستحق = `amount + late_fee_amount - paid_amount`.
+### B. SECURITY DEFINER Functions قابلة للتنفيذ من المستخدمين (warn)
+- الدوال مثل `notify_user`, `recompute_installment_totals`, `apply_installment_late_fees`, `run_installment_reminders` يجب ألا يستدعيها مستخدم نهائي مباشرة.
+- الحل: `REVOKE EXECUTE ... FROM PUBLIC, authenticated` لكل دالة من هذه الدوال؛ الإبقاء على الصلاحية للـ `postgres` role فقط (تُستدعى من triggers و pg_cron).
 
-### `src/routes/_authenticated/my-installments.tsx`
-- إظهار الغرامة بشكل واضح (Badge أحمر) فوق المبلغ المتبقي.
-- إذا فيه `late_fee_amount > 0` يظهر: "غرامة تأخير: X ج.م".
+### C. مراجعة سياسات RLS منطقياً (بدون مشاكل حالية مكتشفة، لكن للتأكيد)
+- ✅ `installments_resident_update_own` تُقيّد المستخدم على الحقول المالية عبر `guard_resident_installment_update` trigger.
+- ✅ `payments_resident_insert_own` تفرض `payment_status = 'pending_confirmation'`.
+- ✅ كل الجداول الحساسة (`residents`, `installments`, `user_roles`, `profiles`) مفصولة عن staff/resident بشكل صحيح.
+- ✅ `user_roles` منفصل عن `profiles` (يتبع best practice ضد privilege escalation).
 
-### `src/lib/installment-pdf.ts`
-- إضافة سطر "غرامة تأخير" في إيصال الـ PDF عند وجودها.
+### D. Auth Settings
+- التأكيد على تفعيل **Leaked Password Protection (HIBP)** عبر `configure_auth` — يمنع كلمات المرور المسرّبة عند التسجيل/التغيير.
+- التأكد من أن `auto_confirm_email` معطل (المستخدم لم يطلبه).
 
-## التغييرات على Server Functions
-
-### `src/lib/installments.functions.ts`
-- توسيع `createCustomInstallmentSchedule` schema لقبول إعدادات الغرامة/التذكير.
-- إضافة `updateScheduleSettings` لتحديث الإعدادات لاحقاً.
-- توسيع `updateInstallment` لقبول override الغرامة لكل قسط.
+### E. Server Functions & Frontend
+- مراجعة كل `createServerFn` في `src/lib/*.functions.ts` للتأكد من:
+  - استخدام `requireSupabaseAuth` middleware حيثما يجب.
+  - وجود `inputValidator` بـ Zod مع حدود (min/max للأرقام والنصوص).
+  - عدم تمرير أسرار للـ client.
+- مراجعة `src/lib/admin-users.functions.ts` خاصة (تستخدم `supabaseAdmin` → يجب التأكد من فحص الدور قبل أي عملية).
 
 ## ترتيب التنفيذ
-1. Migration: إضافة الأعمدة + الدوال + الـ cron.
-2. تحديث الـ types من Supabase تلقائياً.
-3. تعديل `installments.functions.ts`.
-4. تعديل `installment-sheet-dialog.tsx`.
-5. تعديل صفحة تفاصيل الساكن وصفحة أقساطي.
-6. تعديل قالب الـ PDF.
-7. اختبار: إنشاء ساكن بإعدادات غرامة، تشغيل الدالة يدوياً، التأكد من ظهور الغرامة والإشعار.
+1. **Migration واحد** يجمع: حل A1+A2+A3 + REVOKE EXECUTE للدوال (B) + شد سياسات Storage listing (A4).
+2. تفعيل HIBP عبر `configure_auth`.
+3. مراجعة وتعديل `src/lib/admin-users.functions.ts` و server functions لإضافة validators ناقصة.
+4. تعديل docs/ لاستبدال "Lovable Cloud" → "x-project".
+5. إخفاء شارة Lovable (مع تنبيه لو الخطة لا تسمح).
+6. إعادة تشغيل `supabase--linter` و security scan للتأكد من حل كل المشاكل.
 
-## أسئلة قبل البدء
-- هل تريد أن تكون الغرامة الافتراضية **نسبة من قيمة القسط** (مثلاً 1%) أم **مبلغ ثابت** (مثلاً 100 ج.م)؟ وهل لها قيمة افتراضية على مستوى المشروع كله أم تُحدّد لكل ساكن من الصفر؟
-- تكرار الغرامة: **مرة واحدة** عند التأخير، أم **متراكمة يومياً/أسبوعياً/شهرياً** حتى السداد؟
+## ما لن يتغيّر
+- اسم الحزمة `@lovable.dev/vite-tanstack-config` في `package.json` (مكتبة الـ build).
+- ملفات `src/integrations/supabase/*` (مُولّدة تلقائياً).
+- متغيرات البيئة `VITE_SUPABASE_*` و `LOVABLE_API_KEY` (تكامل داخلي).
+- منطق الأعمال (الأقساط، الغرامات، الإشعارات) كما هو.
