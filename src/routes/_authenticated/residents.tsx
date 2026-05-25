@@ -7,7 +7,7 @@ type CreateResidentInput = {
   unitPrice?: number | null;
   unitLink?: string | null;
 };
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
@@ -21,7 +21,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, Pencil, Copy } from "lucide-react";
+import { Plus, Trash2, Pencil, Copy, Eye } from "lucide-react";
 import { useAuthSession, useUserRoles, hasAnyRole } from "@/hooks/use-auth";
 
 function residentLogin(unitNumber: string) {
@@ -37,6 +37,7 @@ function ResidentsPage() {
   const { user } = useAuthSession();
   const { data: roles } = useUserRoles(user);
   const isAdmin = hasAnyRole(roles, ["admin"]);
+  const canViewDetail = hasAnyRole(roles, ["admin", "manager", "sales_manager"]);
   const [open, setOpen] = useState(false);
   const [formProjectId, setFormProjectId] = useState<string>("");
   const [formUnitNumber, setFormUnitNumber] = useState<string>("");
@@ -250,6 +251,13 @@ function ResidentsPage() {
                 <td className="p-3 text-muted-foreground">{r.projects?.name_ar ?? "—"}</td>
                 <td className="p-3 text-muted-foreground">{r.phone ?? "—"}</td>
                 <td className="p-3 text-left">
+                  {canViewDetail && (
+                    <Button size="icon" variant="ghost" asChild title="عرض التفاصيل">
+                      <Link to="/residents/$residentId" params={{ residentId: r.id }}>
+                        <Eye className="h-4 w-4" />
+                      </Link>
+                    </Button>
+                  )}
                   {isAdmin && <Button
                     size="icon"
                     variant="ghost"
