@@ -1,4 +1,4 @@
-# دليل ربط تطبيق Expo بـ Lovable Cloud (Supabase)
+# دليل ربط تطبيق Expo بـ x-project (Supabase)
 
 التطبيق القديم في `resident-app/` كان يكلّم Express API يدوي. هنحوّله يكلّم Supabase مباشرة — نفس الداتابيز اللي بيستخدمها الـ Admin Panel.
 
