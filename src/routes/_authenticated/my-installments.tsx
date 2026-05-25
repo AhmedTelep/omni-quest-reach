@@ -16,6 +16,7 @@ import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
 import { Upload, Download } from "lucide-react";
+import { useScrollToHash } from "@/hooks/use-scroll-to-hash";
 
 export const Route = createFileRoute("/_authenticated/my-installments")({ component: MyInstallmentsPage });
 
@@ -49,6 +50,8 @@ function MyInstallmentsPage() {
     },
   });
 
+  useScrollToHash([items?.length]);
+
   const upload = useMutation({
     mutationFn: async ({ id, file, paid_by_name, amount }: { id: string; file: File; paid_by_name: string; amount: number }) => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -76,7 +79,7 @@ function MyInstallmentsPage() {
           const canPay = remaining > 0 && i.payment_status !== "confirmed";
           const proj = (resident as { projects?: { name_ar?: string; logo?: string | null } } | null)?.projects;
           return (
-          <Card key={i.id}>
+          <Card key={i.id} id={`inst-${i.id}`}>
             <CardContent className="flex flex-wrap items-center justify-between gap-4 p-4">
               <div>
                 <div className="flex items-center gap-2">
