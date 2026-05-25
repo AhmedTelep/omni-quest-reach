@@ -23,6 +23,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Trash2, Pencil, Copy, Eye } from "lucide-react";
 import { useAuthSession, useUserRoles, hasAnyRole } from "@/hooks/use-auth";
+import { InstallmentSheetDialog } from "@/components/installment-sheet-dialog";
+import { ListOrdered } from "lucide-react";
 
 function residentLogin(unitNumber: string) {
   const slug = String(unitNumber).toLowerCase().replace(/[^a-z0-9]/g, "-");
@@ -42,6 +44,7 @@ function ResidentsPage() {
   const [formProjectId, setFormProjectId] = useState<string>("");
   const [formUnitNumber, setFormUnitNumber] = useState<string>("");
   const [editing, setEditing] = useState<any | null>(null);
+  const [sheetFor, setSheetFor] = useState<{ id: string; unit_price: number | null } | null>(null);
   const createFn = useServerFn(createResident);
   const deleteFn = useServerFn(deleteUser);
   const updateFn = useServerFn(updateResident);
@@ -98,7 +101,7 @@ function ResidentsPage() {
 
   const create = useMutation({
     mutationFn: (form: CreateResidentInput) => createFn({ data: form }),
-    onSuccess: async (_data, vars) => {
+    onSuccess: async (data: any, vars) => {
       // Mark the assigned unit as sold
       if (vars.projectId && vars.unitNumber) {
         await supabase
@@ -114,6 +117,22 @@ function ResidentsPage() {
       setOpen(false);
       setFormProjectId("");
       setFormUnitNumber("");
+      // Auto-open the installment sheet for the new resident
+      const newId = data?.residentId ?? data?.resident?.id ?? data?.id;
+      if (newId) {
+        setSheetFor({ id: newId, unit_price: vars.unitPrice ?? null });
+      } else {
+        // Fallback: lookup by project + unit
+        if (vars.projectId && vars.unitNumber) {
+          const { data: r } = await supabase
+            .from("residents")
+            .select("id, unit_price")
+            .eq("project_id", vars.projectId)
+            .eq("unit_number", vars.unitNumber)
+            .maybeSingle();
+          if (r?.id) setSheetFor({ id: r.id, unit_price: r.unit_price ?? vars.unitPrice ?? null });
+        }
+      }
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -275,6 +294,11 @@ function ResidentsPage() {
                   <Button size="icon" variant="ghost" onClick={() => setEditing(r)}>
                     <Pencil className="h-4 w-4" />
                   </Button>
+                  {canViewDetail && (
+                    <Button size="icon" variant="ghost" title="شيت الأقساط" onClick={() => setSheetFor({ id: r.id, unit_price: r.unit_price ?? null })}>
+                      <ListOrdered className="h-4 w-4" />
+                    </Button>
+                  )}
                   {r.user_id && (
                     <Button size="icon" variant="ghost" onClick={() => confirm("حذف الساكن؟") && remove.mutate({ userId: r.user_id, projectId: r.project_id, unitNumber: r.unit_number })}>
                       <Trash2 className="h-4 w-4 text-destructive" />
@@ -301,6 +325,14 @@ function ResidentsPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      <InstallmentSheetDialog
+        open={!!sheetFor}
+        onOpenChange={(o) => { if (!o) setSheetFor(null); }}
+        residentId={sheetFor?.id ?? null}
+        defaultTotal={sheetFor?.unit_price ?? 0}
+        onCreated={() => qc.invalidateQueries({ queryKey: ["resident-installments"] })}
+      />
     </div>
   );
 }
