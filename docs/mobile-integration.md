@@ -1,4 +1,4 @@
-# دليل ربط تطبيقات Mobile (Android / iOS) بـ Lovable Cloud
+# دليل ربط تطبيقات Mobile (Android / iOS) بـ x-project
 
 التطبيق الموبايل بيتكلم مع **نفس قاعدة البيانات** اللي بتستخدمها لوحة الإدارة عبر Supabase. أي تعديل في الويب يظهر فوراً في الموبايل والعكس (عبر Realtime).
 
@@ -211,7 +211,7 @@ const { data } = await supabase.storage.from('receipts').createSignedUrl(path, 3
 
 - ✅ `ANON_KEY` آمن في كود الموبايل.
 - ✅ كل الحماية عبر RLS — الساكن لا يقدر يقرأ بيانات ساكن تاني حتى لو حاول.
-- ✅ لو اتسرّب الـ key أو احتجت تدويره: من إعدادات Lovable Cloud → Rotate API Keys.
+- ✅ لو اتسرّب الـ key أو احتجت تدويره: من إعدادات x-project → Rotate API Keys.
 - ❌ لا تخزن `SERVICE_ROLE_KEY` في التطبيق إطلاقاً.
 - ❌ لا تعطل RLS من الموبايل (مش هينفع أصلاً بالـ anon key).
 
