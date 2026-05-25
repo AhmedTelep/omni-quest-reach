@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Trash2, Save } from "lucide-react";
+import { useScrollToHash } from "@/hooks/use-scroll-to-hash";
 
 export const Route = createFileRoute("/_authenticated/requests")({ component: RequestsPage });
 
@@ -35,6 +36,8 @@ function RequestsPage() {
       return data ?? [];
     },
   });
+
+  useScrollToHash([data?.length]);
 
   useEffect(() => {
     const ch = supabase.channel("requests-rt").on("postgres_changes" as any, { event: "*", schema: "public", table: "maintenance_requests" }, () => {
@@ -71,7 +74,7 @@ function RequestsPage() {
       </div>
       <div className="space-y-3">
         {data?.map((r: any) => (
-          <Card key={r.id}>
+          <Card key={r.id} id={`req-${r.id}`}>
             <CardContent className="space-y-3 p-4">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div className="flex gap-3">
