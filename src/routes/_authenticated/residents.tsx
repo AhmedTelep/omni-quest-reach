@@ -292,30 +292,106 @@ function ResidentsPage() {
         <DialogContent>
           <DialogHeader><DialogTitle>تعديل بيانات الساكن</DialogTitle></DialogHeader>
           {editing && (
+            <EditResidentForm
+              editing={editing}
+              residents={residents ?? []}
+              onSubmit={(vars) => update.mutate(vars)}
+              isPending={update.isPending}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+function EditResidentForm({
+  editing,
+  residents,
+  onSubmit,
+  isPending,
+}: {
+  editing: any;
+  residents: any[];
+  onSubmit: (vars: { id: string; name: string; phone?: string | null; unitPrice?: number | null; unitNumber: string; projectId?: string | null }) => void;
+  isPending: boolean;
+}) {
+  const [unitNumber, setUnitNumber] = useState<string>(editing.unit_number ?? "");
+  const { data: units } = useQuery({
+    queryKey: ["units-for-project", editing.project_id],
+    enabled: !!editing.project_id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("units")
+        .select("id,unit_number,status,price")
+        .eq("project_id", editing.project_id);
+      if (error) throw error;
+      const collator = new Intl.Collator("ar", { numeric: true, sensitivity: "base" });
+      return (data ?? []).slice().sort((a, b) =>
+        collator.compare(String(a.unit_number), String(b.unit_number)),
+      );
+    },
+  });
+  const taken = new Set(
+    residents
+      .filter((r: any) => r.project_id === editing.project_id && r.id !== editing.id)
+      .map((r: any) => String(r.unit_number)),
+  );
+  const options = (units ?? []).filter(
+    (u: any) => !taken.has(String(u.unit_number)) || String(u.unit_number) === String(editing.unit_number),
+  );
+  // Ensure current unit is always present even if not in units table
+  if (editing.unit_number && !options.some((u: any) => String(u.unit_number) === String(editing.unit_number))) {
+    options.unshift({ id: "current", unit_number: editing.unit_number, price: editing.unit_price, status: "sold" });
+  }
+  return (
             <form
               className="space-y-3"
               onSubmit={(e) => {
                 e.preventDefault();
                 const fd = new FormData(e.currentTarget);
-                update.mutate({
+                if (!unitNumber) { toast.error("اختر رقم الوحدة"); return; }
+                onSubmit({
                   id: editing.id,
                   name: String(fd.get("name")),
                   phone: String(fd.get("phone") ?? "") || null,
-                  unitNumber: String(fd.get("unit_number")),
+                  unitNumber,
                   unitPrice: fd.get("price") ? Number(fd.get("price")) : null,
                   projectId: editing.project_id ?? null,
                 });
               }}
             >
               <div className="space-y-1.5"><Label>الاسم</Label><Input name="name" defaultValue={editing.name} required /></div>
-              <div className="space-y-1.5"><Label>رقم الوحدة</Label><Input name="unit_number" defaultValue={editing.unit_number} required /></div>
+              <div className="space-y-1.5">
+                <Label>رقم الوحدة</Label>
+                <Select
+                  value={unitNumber}
+                  onValueChange={(v) => {
+                    setUnitNumber(v);
+                    const u = options.find((x: any) => String(x.unit_number) === v);
+                    const priceInput = document.querySelector<HTMLInputElement>('input[name="price"]');
+                    if (priceInput && u?.price != null) priceInput.value = String(u.price);
+                  }}
+                  disabled={!editing.project_id}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={editing.project_id ? "اختر وحدة" : "لا يوجد مشروع مرتبط"} />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-64">
+                    {options.map((u: any) => (
+                      <SelectItem key={u.id} value={String(u.unit_number)}>{u.unit_number}</SelectItem>
+                    ))}
+                    {editing.project_id && options.length === 0 && (
+                      <div className="p-3 text-center text-xs text-muted-foreground">
+                        لا توجد وحدات — أضفها من صفحة الوحدات
+                      </div>
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
               <div className="space-y-1.5"><Label>الهاتف</Label><Input name="phone" defaultValue={editing.phone ?? ""} /></div>
               <div className="space-y-1.5"><Label>سعر الوحدة</Label><Input name="price" type="number" step="0.01" defaultValue={editing.unit_price ?? ""} /></div>
-              <DialogFooter><Button type="submit" disabled={update.isPending}>{update.isPending ? "جاري…" : "حفظ"}</Button></DialogFooter>
+              <DialogFooter><Button type="submit" disabled={isPending}>{isPending ? "جاري…" : "حفظ"}</Button></DialogFooter>
             </form>
-          )}
-        </DialogContent>
-      </Dialog>
-    </div>
   );
 }
