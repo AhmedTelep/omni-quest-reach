@@ -477,11 +477,13 @@ function ResidentDetailPage() {
             <form className="space-y-3" onSubmit={(e) => {
               e.preventDefault();
               const fd = new FormData(e.currentTarget);
+              const lfRaw = String(fd.get("lateFeeAmount") ?? "");
               updateMut.mutate({
                 installmentId: editing.id,
                 amount: Number(fd.get("amount")),
                 dueDate: String(fd.get("due")),
                 description: String(fd.get("desc") ?? ""),
+                lateFeeAmount: lfRaw === "" ? undefined : Number(lfRaw),
               });
             }}>
               <div className="space-y-1.5"><Label>المبلغ</Label>
@@ -492,6 +494,10 @@ function ResidentDetailPage() {
               </div>
               <div className="space-y-1.5"><Label>الوصف</Label>
                 <Textarea name="desc" defaultValue={editing.description ?? ""} />
+              </div>
+              <div className="space-y-1.5"><Label>غرامة التأخير المتراكمة (ج.م)</Label>
+                <Input name="lateFeeAmount" type="number" step="0.01" min="0" defaultValue={editing.late_fee_amount ?? 0} />
+                <p className="text-[11px] text-muted-foreground">تُحسب تلقائياً يومياً وفق إعدادات الجدول — يمكنك تعديلها أو تصفيرها يدوياً.</p>
               </div>
               <DialogFooter>
                 <Button type="submit" disabled={updateMut.isPending}>{updateMut.isPending ? "جاري…" : "حفظ"}</Button>
