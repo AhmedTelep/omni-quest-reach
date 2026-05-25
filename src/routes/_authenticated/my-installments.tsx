@@ -106,6 +106,7 @@ function MyInstallmentsPage() {
                     installmentAmount: amount,
                     paidAmount: paid,
                     remainingAmount: remaining,
+                    lateFeeAmount: lateFee,
                     description: i.description,
                     dueDate: i.due_date,
                     paidAt: i.paid_at,
