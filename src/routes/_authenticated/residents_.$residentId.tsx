@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { createInstallmentSchedule, updateInstallment, deleteInstallment } from "@/lib/installments.functions";
 import { openReceiptPdf } from "@/lib/installment-pdf";
 import { toast } from "sonner";
+import { useScrollToHash } from "@/hooks/use-scroll-to-hash";
 import {
   ArrowRight,
   User,
@@ -196,6 +197,7 @@ function ResidentDetailPage() {
 
   const r = resident.data as any;
   const items = installments.data ?? [];
+  useScrollToHash([items.length, requests.data?.length]);
   const totalAmount = items.reduce((s: number, x: any) => s + Number(x.amount || 0), 0);
   const paidAmount = items
     .reduce((s: number, x: any) => s + Number(x.paid_amount ?? 0), 0);
@@ -401,7 +403,7 @@ function ResidentDetailPage() {
                   const paid = Number(it.paid_amount ?? 0);
                   const amount = Number(it.amount);
                   return (
-                    <tr key={it.id} className="border-b">
+                    <tr key={it.id} id={`inst-${it.id}`} className="border-b">
                       <td className="p-3 font-mono text-xs">{it.serial}</td>
                       <td className="p-3">{it.description ?? "—"}</td>
                       <td className="p-3">
@@ -529,7 +531,7 @@ function ResidentDetailPage() {
               </thead>
               <tbody>
                 {(requests.data ?? []).map((rq: any) => (
-                  <tr key={rq.id} className="border-b">
+                  <tr key={rq.id} id={`req-${rq.id}`} className="border-b">
                     <td className="p-3">{rq.services?.name_ar ?? rq.service_type}</td>
                     <td className="p-3 max-w-xs truncate text-muted-foreground">
                       {rq.notes ?? "—"}

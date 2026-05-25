@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus } from "lucide-react";
+import { useScrollToHash } from "@/hooks/use-scroll-to-hash";
 
 export const Route = createFileRoute("/_authenticated/my-requests")({ component: MyRequestsPage });
 
@@ -51,6 +52,8 @@ function MyRequestsPage() {
       return data ?? [];
     },
   });
+
+  useScrollToHash([requests?.length]);
 
   const create = useMutation({
     mutationFn: async (form: { service_id: string; service_type: string; notes: string; image?: File | null }) => {
@@ -118,7 +121,7 @@ function MyRequestsPage() {
 
       <div className="space-y-3">
         {requests?.map((r: any) => (
-          <Card key={r.id}>
+          <Card key={r.id} id={`req-${r.id}`}>
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <span className="font-semibold">{r.service_type}</span>

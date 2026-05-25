@@ -23,6 +23,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Plus, Check, X, FileText, ChevronDown, ChevronUp, Download } from "lucide-react";
+import { useScrollToHash } from "@/hooks/use-scroll-to-hash";
 
 export const Route = createFileRoute("/_authenticated/installments")({ component: InstallmentsPage });
 
@@ -116,6 +117,8 @@ function InstallmentsPage() {
     catch (e) { toast.error((e as Error).message); }
   };
 
+  useScrollToHash([items?.length]);
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -187,7 +190,7 @@ function InstallmentsPage() {
               const isExpanded = expanded === i.id;
               return (
                 <>
-                  <tr key={i.id} className="border-b">
+                  <tr key={i.id} id={`inst-${i.id}`} className="border-b">
                     <td className="p-3 font-mono text-xs">{i.serial}</td>
                     <td className="p-3">{i.residents?.name} — {i.residents?.unit_number}</td>
                     <td className="p-3 text-muted-foreground">{i.projects?.name_ar ?? "—"}</td>

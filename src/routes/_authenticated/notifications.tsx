@@ -56,7 +56,10 @@ function NotificationsPage() {
               className={`cursor-pointer transition ${!n.is_read ? "border-primary/40 bg-primary/5" : ""}`}
               onClick={() => {
                 if (!n.is_read) markRead.mutate(n.id);
-                if (n.link) navigate({ to: n.link });
+                if (n.link) {
+                  const [path, hash] = n.link.split("#");
+                  navigate({ to: path, hash: hash || undefined });
+                }
               }}
             >
               <CardContent className="p-4">
