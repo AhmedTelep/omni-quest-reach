@@ -1,11 +1,20 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthSession, useUserRoles, hasAnyRole } from "@/hooks/use-auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { createInstallmentSchedule } from "@/lib/installments.functions";
+import { openReceiptPdf } from "@/lib/installment-pdf";
+import { toast } from "sonner";
 import {
   ArrowRight,
   User,
@@ -16,6 +25,8 @@ import {
   Receipt,
   Wrench,
   Link as LinkIcon,
+  CalendarPlus,
+  Download,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/residents_/$residentId")({
@@ -36,6 +47,7 @@ function fmtDate(d: string | null | undefined) {
 
 const STATUS_LABEL: Record<string, { label: string; cls: string }> = {
   confirmed: { label: "مدفوع", cls: "bg-emerald-500/10 text-emerald-600 border-emerald-500/30" },
+  partial: { label: "مدفوع جزئياً", cls: "bg-blue-500/10 text-blue-600 border-blue-500/30" },
   pending_confirmation: { label: "بانتظار التأكيد", cls: "bg-amber-500/10 text-amber-600 border-amber-500/30" },
   rejected: { label: "مرفوض", cls: "bg-rose-500/10 text-rose-600 border-rose-500/30" },
   unpaid: { label: "غير مدفوع", cls: "bg-muted text-muted-foreground border-border" },
@@ -54,6 +66,20 @@ function ResidentDetailPage() {
   const { user } = useAuthSession();
   const { data: roles, isLoading: rolesLoading } = useUserRoles(user);
   const allowed = hasAnyRole(roles, STAFF_ROLES as unknown as any);
+  const canSchedule = roles?.some((r) => ["admin", "manager"].includes(r)) ?? false;
+  const qc = useQueryClient();
+  const [schedOpen, setSchedOpen] = useState(false);
+  const createSched = useServerFn(createInstallmentSchedule);
+  const schedMut = useMutation({
+    mutationFn: (vars: { totalAmount: number; count: number; frequency: "weekly"|"monthly"|"quarterly"|"yearly"; startDate: string; description: string }) =>
+      createSched({ data: { residentId, ...vars } }),
+    onSuccess: (res) => {
+      toast.success(`تم إنشاء ${res.created} قسط`);
+      setSchedOpen(false);
+      qc.invalidateQueries({ queryKey: ["resident-installments", residentId] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   useEffect(() => {
     if (!rolesLoading && roles && !allowed) {
@@ -149,8 +175,7 @@ function ResidentDetailPage() {
   const items = installments.data ?? [];
   const totalAmount = items.reduce((s: number, x: any) => s + Number(x.amount || 0), 0);
   const paidAmount = items
-    .filter((x: any) => x.payment_status === "confirmed")
-    .reduce((s: number, x: any) => s + Number(x.amount || 0), 0);
+    .reduce((s: number, x: any) => s + Number(x.paid_amount ?? 0), 0);
   const pendingAmount = items
     .filter((x: any) => x.payment_status === "pending_confirmation")
     .reduce((s: number, x: any) => s + Number(x.amount || 0), 0);
@@ -268,17 +293,61 @@ function ResidentDetailPage() {
       {/* Installments */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Receipt className="h-4 w-4 text-primary" /> الأقساط ({items.length})
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Receipt className="h-4 w-4 text-primary" /> الأقساط ({items.length})
+            </CardTitle>
+            {canSchedule && (
+              <Dialog open={schedOpen} onOpenChange={setSchedOpen}>
+                <DialogTrigger asChild>
+                  <Button size="sm" variant="outline"><CalendarPlus className="ms-2 h-4 w-4" />جدولة أقساط</Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader><DialogTitle>إنشاء جدول أقساط</DialogTitle></DialogHeader>
+                  <form className="space-y-3" onSubmit={(e) => {
+                    e.preventDefault();
+                    const fd = new FormData(e.currentTarget);
+                    schedMut.mutate({
+                      totalAmount: Number(fd.get("total")),
+                      count: Number(fd.get("count")),
+                      frequency: String(fd.get("freq")) as "weekly"|"monthly"|"quarterly"|"yearly",
+                      startDate: String(fd.get("start")),
+                      description: String(fd.get("desc") ?? ""),
+                    });
+                  }}>
+                    <div className="space-y-1.5"><Label>المبلغ الإجمالي</Label><Input name="total" type="number" step="0.01" required /></div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1.5"><Label>عدد الأقساط</Label><Input name="count" type="number" min="1" max="600" required /></div>
+                      <div className="space-y-1.5">
+                        <Label>التكرار</Label>
+                        <Select name="freq" defaultValue="monthly">
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="weekly">أسبوعي</SelectItem>
+                            <SelectItem value="monthly">شهري</SelectItem>
+                            <SelectItem value="quarterly">ربع سنوي</SelectItem>
+                            <SelectItem value="yearly">سنوي</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <div className="space-y-1.5"><Label>تاريخ أول قسط</Label><Input name="start" type="date" required /></div>
+                    <div className="space-y-1.5"><Label>الوصف</Label><Textarea name="desc" /></div>
+                    <DialogFooter><Button type="submit" disabled={schedMut.isPending}>{schedMut.isPending ? "جاري…" : "إنشاء الجدول"}</Button></DialogFooter>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            )}
+          </div>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="border-b bg-muted/50">
                 <tr className="text-right">
+                  <th className="p-3">السيريال</th>
                   <th className="p-3">الوصف</th>
-                  <th className="p-3">المبلغ</th>
+                  <th className="p-3">المبلغ / المدفوع</th>
                   <th className="p-3">تاريخ الاستحقاق</th>
                   <th className="p-3">تاريخ الدفع</th>
                   <th className="p-3">الحالة</th>
@@ -288,28 +357,51 @@ function ResidentDetailPage() {
               <tbody>
                 {items.map((it: any) => {
                   const st = STATUS_LABEL[it.payment_status ?? "unpaid"] ?? STATUS_LABEL.unpaid;
+                  const paid = Number(it.paid_amount ?? 0);
+                  const amount = Number(it.amount);
                   return (
                     <tr key={it.id} className="border-b">
+                      <td className="p-3 font-mono text-xs">{it.serial}</td>
                       <td className="p-3">{it.description ?? "—"}</td>
-                      <td className="p-3 font-medium">{fmtMoney(Number(it.amount))}</td>
+                      <td className="p-3">
+                        <div className="font-medium">{fmtMoney(amount)}</div>
+                        {paid > 0 && <div className="text-xs text-emerald-600">مدفوع: {fmtMoney(paid)}</div>}
+                      </td>
                       <td className="p-3 text-muted-foreground">{fmtDate(it.due_date)}</td>
                       <td className="p-3 text-muted-foreground">{fmtDate(it.paid_at)}</td>
                       <td className="p-3">
                         <Badge variant="outline" className={st.cls}>{st.label}</Badge>
                       </td>
                       <td className="p-3">
-                        {it.receipt_url ? (
-                          <ReceiptLink path={it.receipt_url} />
-                        ) : (
-                          <span className="text-muted-foreground">—</span>
-                        )}
+                        <div className="flex gap-2">
+                          {(it.payment_status === "confirmed" || it.payment_status === "partial") && (
+                            <button className="text-primary underline text-xs" onClick={() => openReceiptPdf({
+                              installmentSerial: it.serial,
+                              residentName: r.name,
+                              unitNumber: r.unit_number,
+                              projectName: r.projects?.name_ar,
+                              projectLogo: r.projects?.logo,
+                              installmentAmount: amount,
+                              paidAmount: paid,
+                              remainingAmount: Math.max(0, amount - paid),
+                              description: it.description,
+                              dueDate: it.due_date,
+                              paidAt: it.paid_at,
+                              confirmedAt: it.confirmed_at ?? it.paid_at,
+                              confirmedByName: it.confirmed_by_name,
+                              paidByName: it.paid_by_name,
+                            })}><Download className="inline h-3 w-3" /> PDF</button>
+                          )}
+                          {it.receipt_url && <ReceiptLink path={it.receipt_url} />}
+                          {!it.receipt_url && it.payment_status !== "confirmed" && it.payment_status !== "partial" && <span className="text-muted-foreground">—</span>}
+                        </div>
                       </td>
                     </tr>
                   );
                 })}
                 {items.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="p-8 text-center text-muted-foreground">
+                    <td colSpan={7} className="p-8 text-center text-muted-foreground">
                       لا توجد أقساط
                     </td>
                   </tr>
