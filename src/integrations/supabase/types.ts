@@ -68,6 +68,104 @@ export type Database = {
         }
         Relationships: []
       }
+      installment_payments: {
+        Row: {
+          amount: number
+          confirmed_at: string | null
+          confirmed_by_name: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          installment_id: string
+          paid_at: string | null
+          paid_by_name: string | null
+          payment_status: string
+          receipt_url: string | null
+          rejection_reason: string | null
+          serial: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          confirmed_at?: string | null
+          confirmed_by_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          installment_id: string
+          paid_at?: string | null
+          paid_by_name?: string | null
+          payment_status?: string
+          receipt_url?: string | null
+          rejection_reason?: string | null
+          serial: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          confirmed_at?: string | null
+          confirmed_by_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          installment_id?: string
+          paid_at?: string | null
+          paid_by_name?: string | null
+          payment_status?: string
+          receipt_url?: string | null
+          rejection_reason?: string | null
+          serial?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "installment_payments_installment_id_fkey"
+            columns: ["installment_id"]
+            isOneToOne: false
+            referencedRelation: "installments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      installment_schedules: {
+        Row: {
+          count: number
+          created_at: string
+          created_by: string | null
+          description: string | null
+          frequency: string
+          id: string
+          project_id: string
+          resident_id: string
+          start_date: string
+          total_amount: number
+        }
+        Insert: {
+          count: number
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          frequency?: string
+          id?: string
+          project_id: string
+          resident_id: string
+          start_date: string
+          total_amount: number
+        }
+        Update: {
+          count?: number
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          frequency?: string
+          id?: string
+          project_id?: string
+          resident_id?: string
+          start_date?: string
+          total_amount?: number
+        }
+        Relationships: []
+      }
       installments: {
         Row: {
           amount: number
@@ -77,6 +175,9 @@ export type Database = {
           description: string | null
           due_date: string | null
           id: string
+          installment_index: number | null
+          installments_total: number | null
+          paid_amount: number
           paid_at: string | null
           paid_by_name: string | null
           payment_status: Database["public"]["Enums"]["payment_status"] | null
@@ -84,6 +185,8 @@ export type Database = {
           receipt_url: string | null
           rejection_reason: string | null
           resident_id: string
+          schedule_id: string | null
+          serial: string
           updated_at: string
         }
         Insert: {
@@ -94,6 +197,9 @@ export type Database = {
           description?: string | null
           due_date?: string | null
           id?: string
+          installment_index?: number | null
+          installments_total?: number | null
+          paid_amount?: number
           paid_at?: string | null
           paid_by_name?: string | null
           payment_status?: Database["public"]["Enums"]["payment_status"] | null
@@ -101,6 +207,8 @@ export type Database = {
           receipt_url?: string | null
           rejection_reason?: string | null
           resident_id: string
+          schedule_id?: string | null
+          serial: string
           updated_at?: string
         }
         Update: {
@@ -111,6 +219,9 @@ export type Database = {
           description?: string | null
           due_date?: string | null
           id?: string
+          installment_index?: number | null
+          installments_total?: number | null
+          paid_amount?: number
           paid_at?: string | null
           paid_by_name?: string | null
           payment_status?: Database["public"]["Enums"]["payment_status"] | null
@@ -118,6 +229,8 @@ export type Database = {
           receipt_url?: string | null
           rejection_reason?: string | null
           resident_id?: string
+          schedule_id?: string | null
+          serial?: string
           updated_at?: string
         }
         Relationships: [
@@ -510,6 +623,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      recompute_installment_totals: {
+        Args: { _installment_id: string }
+        Returns: undefined
+      }
       run_installment_reminders: { Args: never; Returns: undefined }
     }
     Enums: {
@@ -520,7 +637,11 @@ export type Database = {
         | "sales"
         | "accountant"
         | "resident"
-      payment_status: "pending_confirmation" | "confirmed" | "rejected"
+      payment_status:
+        | "pending_confirmation"
+        | "confirmed"
+        | "rejected"
+        | "partial"
       request_status: "open" | "in_progress" | "completed"
     }
     CompositeTypes: {
@@ -657,7 +778,12 @@ export const Constants = {
         "accountant",
         "resident",
       ],
-      payment_status: ["pending_confirmation", "confirmed", "rejected"],
+      payment_status: [
+        "pending_confirmation",
+        "confirmed",
+        "rejected",
+        "partial",
+      ],
       request_status: ["open", "in_progress", "completed"],
     },
   },
