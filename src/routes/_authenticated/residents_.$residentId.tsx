@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { createInstallmentSchedule, updateInstallment, deleteInstallment } from "@/lib/installments.functions";
 import { openReceiptPdf } from "@/lib/installment-pdf";
 import { toast } from "sonner";
+import { useScrollToHash } from "@/hooks/use-scroll-to-hash";
 import {
   ArrowRight,
   User,
@@ -196,6 +197,7 @@ function ResidentDetailPage() {
 
   const r = resident.data as any;
   const items = installments.data ?? [];
+  useScrollToHash([items.length, requests.data?.length]);
   const totalAmount = items.reduce((s: number, x: any) => s + Number(x.amount || 0), 0);
   const paidAmount = items
     .reduce((s: number, x: any) => s + Number(x.paid_amount ?? 0), 0);
