@@ -11,6 +11,8 @@ import { Plus, Trash2, RefreshCw } from "lucide-react";
 import { createCustomInstallmentSchedule } from "@/lib/installments.functions";
 
 type Frequency = "weekly" | "monthly" | "quarterly" | "biannual" | "yearly";
+type LateFeeType = "none" | "fixed" | "percent";
+type LateFeeRecurrence = "once" | "daily" | "weekly" | "monthly";
 
 export type SheetRow = {
   id: string;
@@ -95,6 +97,11 @@ export function InstallmentSheetDialog({
   const [downPayment, setDownPayment] = useState<number>(0);
   const [desc, setDesc] = useState<string>("");
   const [rows, setRows] = useState<SheetRow[]>([]);
+  const [lateFeeType, setLateFeeType] = useState<LateFeeType>("none");
+  const [lateFeeValue, setLateFeeValue] = useState<number>(0);
+  const [lateFeeGraceDays, setLateFeeGraceDays] = useState<number>(0);
+  const [lateFeeRecurrence, setLateFeeRecurrence] = useState<LateFeeRecurrence>("once");
+  const [reminderDaysBefore, setReminderDaysBefore] = useState<number>(3);
 
   // Auto-generate when params change (only if rows weren't manually edited yet)
   useEffect(() => {
@@ -151,6 +158,11 @@ export function InstallmentSheetDialog({
           frequency,
           startDate,
           description: desc,
+          lateFeeType,
+          lateFeeValue,
+          lateFeeGraceDays,
+          lateFeeRecurrence,
+          reminderDaysBefore,
           installments: rows.map((r) => ({
             amount: Number(r.amount),
             dueDate: r.dueDate,
