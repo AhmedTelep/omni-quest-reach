@@ -18,6 +18,27 @@ function addPeriod(date: Date, freq: string, n: number): Date {
   return d;
 }
 
+const lateFeeSettingsSchema = z.object({
+  lateFeeType: z.enum(["none", "fixed", "percent"]).optional().default("none"),
+  lateFeeValue: z.number().min(0).max(1_000_000_000).optional().default(0),
+  lateFeeGraceDays: z.number().int().min(0).max(3650).optional().default(0),
+  lateFeeRecurrence: z.enum(["once", "daily", "weekly", "monthly"]).optional().default("once"),
+  reminderDaysBefore: z.number().int().min(0).max(365).optional().default(3),
+});
+
+function settingsToColumns(s: {
+  lateFeeType?: string; lateFeeValue?: number; lateFeeGraceDays?: number;
+  lateFeeRecurrence?: string; reminderDaysBefore?: number;
+}) {
+  return {
+    late_fee_type: s.lateFeeType ?? "none",
+    late_fee_value: s.lateFeeValue ?? 0,
+    late_fee_grace_days: s.lateFeeGraceDays ?? 0,
+    late_fee_recurrence: s.lateFeeRecurrence ?? "once",
+    reminder_days_before: s.reminderDaysBefore ?? 3,
+  };
+}
+
 /** Create a schedule of installments for a resident (admin/manager) */
 export const createInstallmentSchedule = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
