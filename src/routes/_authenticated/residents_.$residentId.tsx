@@ -86,7 +86,7 @@ function ResidentDetailPage() {
     onError: (e: Error) => toast.error(e.message),
   });
   const updateMut = useMutation({
-    mutationFn: (vars: { installmentId: string; amount?: number; dueDate?: string; description?: string }) =>
+    mutationFn: (vars: { installmentId: string; amount?: number; dueDate?: string; description?: string; lateFeeAmount?: number }) =>
       updateFn({ data: vars }),
     onSuccess: () => {
       toast.success("تم تحديث القسط");
