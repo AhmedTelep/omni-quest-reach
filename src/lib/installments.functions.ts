@@ -203,3 +203,57 @@ export const deleteInstallmentSchedule = createServerFn({ method: "POST" })
     await supabaseAdmin.from("installment_schedules").delete().eq("id", data.scheduleId);
     return { ok: true };
   });
+
+/** Update a single installment (amount/due_date/description) — staff only */
+export const updateInstallment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z
+      .object({
+        installmentId: z.string().uuid(),
+        amount: z.number().positive().max(1_000_000_000).optional(),
+        dueDate: z.string().min(1).optional(),
+        description: z.string().max(500).optional(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const roles = await getRoles(context.userId);
+    if (!roles.some((r) => ["admin", "manager", "sales_manager", "accountant"].includes(r))) {
+      throw new Error("غير مصرح بتعديل القسط");
+    }
+    const patch: Record<string, unknown> = {};
+    if (data.amount != null) patch.amount = data.amount;
+    if (data.dueDate) patch.due_date = new Date(data.dueDate).toISOString();
+    if (data.description !== undefined) patch.description = data.description || null;
+    if (Object.keys(patch).length === 0) return { ok: true };
+    const { error } = await supabaseAdmin
+      .from("installments")
+      .update(patch as never)
+      .eq("id", data.installmentId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+/** Delete a single installment (admin/manager) */
+export const deleteInstallment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => z.object({ installmentId: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    const roles = await getRoles(context.userId);
+    if (!roles.some((r) => ["admin", "manager"].includes(r))) {
+      throw new Error("غير مصرح بحذف القسط");
+    }
+    // Block delete if there are confirmed payments
+    const { data: pays } = await supabaseAdmin
+      .from("installment_payments")
+      .select("id, payment_status")
+      .eq("installment_id", data.installmentId);
+    if ((pays ?? []).some((p) => p.payment_status === "confirmed")) {
+      throw new Error("لا يمكن حذف قسط به دفعات مؤكدة");
+    }
+    await supabaseAdmin.from("installment_payments").delete().eq("installment_id", data.installmentId);
+    const { error } = await supabaseAdmin.from("installments").delete().eq("id", data.installmentId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
