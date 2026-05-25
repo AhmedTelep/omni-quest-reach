@@ -18,7 +18,7 @@ import {
   Link as LinkIcon,
 } from "lucide-react";
 
-export const Route = createFileRoute("/_authenticated/residents/$residentId")({
+export const Route = createFileRoute("/_authenticated/residents_/$residentId")({
   component: ResidentDetailPage,
 });
 

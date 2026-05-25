@@ -24,7 +24,7 @@ import { Route as AuthenticatedInstallmentsRouteImport } from './routes/_authent
 import { Route as AuthenticatedEmployeesRouteImport } from './routes/_authenticated/employees'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedAnnouncementsRouteImport } from './routes/_authenticated/announcements'
-import { Route as AuthenticatedResidentsResidentIdRouteImport } from './routes/_authenticated/residents.$residentId'
+import { Route as AuthenticatedResidentsResidentIdRouteImport } from './routes/_authenticated/residents_.$residentId'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -106,9 +106,9 @@ const AuthenticatedAnnouncementsRoute =
   } as any)
 const AuthenticatedResidentsResidentIdRoute =
   AuthenticatedResidentsResidentIdRouteImport.update({
-    id: '/$residentId',
-    path: '/$residentId',
-    getParentRoute: () => AuthenticatedResidentsRoute,
+    id: '/residents_/$residentId',
+    path: '/residents/$residentId',
+    getParentRoute: () => AuthenticatedRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
@@ -123,7 +123,7 @@ export interface FileRoutesByFullPath {
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/projects': typeof AuthenticatedProjectsRoute
   '/requests': typeof AuthenticatedRequestsRoute
-  '/residents': typeof AuthenticatedResidentsRouteWithChildren
+  '/residents': typeof AuthenticatedResidentsRoute
   '/services': typeof AuthenticatedServicesRoute
   '/units': typeof AuthenticatedUnitsRoute
   '/residents/$residentId': typeof AuthenticatedResidentsResidentIdRoute
@@ -140,7 +140,7 @@ export interface FileRoutesByTo {
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/projects': typeof AuthenticatedProjectsRoute
   '/requests': typeof AuthenticatedRequestsRoute
-  '/residents': typeof AuthenticatedResidentsRouteWithChildren
+  '/residents': typeof AuthenticatedResidentsRoute
   '/services': typeof AuthenticatedServicesRoute
   '/units': typeof AuthenticatedUnitsRoute
   '/residents/$residentId': typeof AuthenticatedResidentsResidentIdRoute
@@ -159,10 +159,10 @@ export interface FileRoutesById {
   '/_authenticated/notifications': typeof AuthenticatedNotificationsRoute
   '/_authenticated/projects': typeof AuthenticatedProjectsRoute
   '/_authenticated/requests': typeof AuthenticatedRequestsRoute
-  '/_authenticated/residents': typeof AuthenticatedResidentsRouteWithChildren
+  '/_authenticated/residents': typeof AuthenticatedResidentsRoute
   '/_authenticated/services': typeof AuthenticatedServicesRoute
   '/_authenticated/units': typeof AuthenticatedUnitsRoute
-  '/_authenticated/residents/$residentId': typeof AuthenticatedResidentsResidentIdRoute
+  '/_authenticated/residents_/$residentId': typeof AuthenticatedResidentsResidentIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -216,7 +216,7 @@ export interface FileRouteTypes {
     | '/_authenticated/residents'
     | '/_authenticated/services'
     | '/_authenticated/units'
-    | '/_authenticated/residents/$residentId'
+    | '/_authenticated/residents_/$residentId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -332,30 +332,15 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAnnouncementsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/residents/$residentId': {
-      id: '/_authenticated/residents/$residentId'
-      path: '/$residentId'
+    '/_authenticated/residents_/$residentId': {
+      id: '/_authenticated/residents_/$residentId'
+      path: '/residents/$residentId'
       fullPath: '/residents/$residentId'
       preLoaderRoute: typeof AuthenticatedResidentsResidentIdRouteImport
-      parentRoute: typeof AuthenticatedResidentsRoute
+      parentRoute: typeof AuthenticatedRoute
     }
   }
 }
-
-interface AuthenticatedResidentsRouteChildren {
-  AuthenticatedResidentsResidentIdRoute: typeof AuthenticatedResidentsResidentIdRoute
-}
-
-const AuthenticatedResidentsRouteChildren: AuthenticatedResidentsRouteChildren =
-  {
-    AuthenticatedResidentsResidentIdRoute:
-      AuthenticatedResidentsResidentIdRoute,
-  }
-
-const AuthenticatedResidentsRouteWithChildren =
-  AuthenticatedResidentsRoute._addFileChildren(
-    AuthenticatedResidentsRouteChildren,
-  )
 
 interface AuthenticatedRouteChildren {
   AuthenticatedAnnouncementsRoute: typeof AuthenticatedAnnouncementsRoute
@@ -367,9 +352,10 @@ interface AuthenticatedRouteChildren {
   AuthenticatedNotificationsRoute: typeof AuthenticatedNotificationsRoute
   AuthenticatedProjectsRoute: typeof AuthenticatedProjectsRoute
   AuthenticatedRequestsRoute: typeof AuthenticatedRequestsRoute
-  AuthenticatedResidentsRoute: typeof AuthenticatedResidentsRouteWithChildren
+  AuthenticatedResidentsRoute: typeof AuthenticatedResidentsRoute
   AuthenticatedServicesRoute: typeof AuthenticatedServicesRoute
   AuthenticatedUnitsRoute: typeof AuthenticatedUnitsRoute
+  AuthenticatedResidentsResidentIdRoute: typeof AuthenticatedResidentsResidentIdRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
@@ -382,9 +368,10 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedNotificationsRoute: AuthenticatedNotificationsRoute,
   AuthenticatedProjectsRoute: AuthenticatedProjectsRoute,
   AuthenticatedRequestsRoute: AuthenticatedRequestsRoute,
-  AuthenticatedResidentsRoute: AuthenticatedResidentsRouteWithChildren,
+  AuthenticatedResidentsRoute: AuthenticatedResidentsRoute,
   AuthenticatedServicesRoute: AuthenticatedServicesRoute,
   AuthenticatedUnitsRoute: AuthenticatedUnitsRoute,
+  AuthenticatedResidentsResidentIdRoute: AuthenticatedResidentsResidentIdRoute,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
@@ -399,3 +386,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
