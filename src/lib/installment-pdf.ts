@@ -12,6 +12,7 @@ export type ReceiptData = {
   paidAmount: number;
   remainingAmount: number;
   paymentAmount?: number | null;
+  lateFeeAmount?: number | null;
   paidAt?: string | null;
   confirmedAt?: string | null;
   confirmedByName?: string | null;
@@ -97,6 +98,7 @@ export function openReceiptPdf(r: ReceiptData) {
 
   <div class="totals">
     <div class="cell"><div class="lbl">قيمة القسط</div><div class="val">${fmt(r.installmentAmount)}</div></div>
+    ${r.lateFeeAmount && r.lateFeeAmount > 0 ? `<div class="cell"><div class="lbl">غرامة تأخير</div><div class="val" style="color:#dc2626">${fmt(r.lateFeeAmount)}</div></div>` : ""}
     <div class="cell"><div class="lbl">إجمالي المدفوع</div><div class="val" style="color:#059669">${fmt(r.paidAmount)}</div></div>
     <div class="cell"><div class="lbl">المتبقي</div><div class="val" style="color:${r.remainingAmount > 0 ? "#dc2626" : "#059669"}">${fmt(Math.max(0, r.remainingAmount))}</div></div>
   </div>

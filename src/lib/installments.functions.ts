@@ -18,6 +18,27 @@ function addPeriod(date: Date, freq: string, n: number): Date {
   return d;
 }
 
+const lateFeeSettingsSchema = z.object({
+  lateFeeType: z.enum(["none", "fixed", "percent"]).optional().default("none"),
+  lateFeeValue: z.number().min(0).max(1_000_000_000).optional().default(0),
+  lateFeeGraceDays: z.number().int().min(0).max(3650).optional().default(0),
+  lateFeeRecurrence: z.enum(["once", "daily", "weekly", "monthly"]).optional().default("once"),
+  reminderDaysBefore: z.number().int().min(0).max(365).optional().default(3),
+});
+
+function settingsToColumns(s: {
+  lateFeeType?: string; lateFeeValue?: number; lateFeeGraceDays?: number;
+  lateFeeRecurrence?: string; reminderDaysBefore?: number;
+}) {
+  return {
+    late_fee_type: s.lateFeeType ?? "none",
+    late_fee_value: s.lateFeeValue ?? 0,
+    late_fee_grace_days: s.lateFeeGraceDays ?? 0,
+    late_fee_recurrence: s.lateFeeRecurrence ?? "once",
+    reminder_days_before: s.reminderDaysBefore ?? 3,
+  };
+}
+
 /** Create a schedule of installments for a resident (admin/manager) */
 export const createInstallmentSchedule = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -32,6 +53,7 @@ export const createInstallmentSchedule = createServerFn({ method: "POST" })
         description: z.string().max(500).optional().default(""),
         downPayment: z.number().min(0).max(1_000_000_000).optional().default(0),
       })
+      .merge(lateFeeSettingsSchema)
       .parse(input),
   )
   .handler(async ({ data, context }) => {
@@ -58,6 +80,7 @@ export const createInstallmentSchedule = createServerFn({ method: "POST" })
         start_date: data.startDate,
         description: data.description || null,
         created_by: context.userId,
+        ...settingsToColumns(data),
       })
       .select()
       .single();
@@ -214,6 +237,12 @@ export const updateInstallment = createServerFn({ method: "POST" })
         amount: z.number().positive().max(1_000_000_000).optional(),
         dueDate: z.string().min(1).optional(),
         description: z.string().max(500).optional(),
+        lateFeeAmount: z.number().min(0).optional(),
+        lateFeeTypeOverride: z.enum(["none","fixed","percent"]).nullable().optional(),
+        lateFeeValueOverride: z.number().min(0).nullable().optional(),
+        lateFeeGraceDaysOverride: z.number().int().min(0).max(3650).nullable().optional(),
+        lateFeeRecurrenceOverride: z.enum(["once","daily","weekly","monthly"]).nullable().optional(),
+        reminderDaysBeforeOverride: z.number().int().min(0).max(365).nullable().optional(),
       })
       .parse(input),
   )
@@ -226,11 +255,36 @@ export const updateInstallment = createServerFn({ method: "POST" })
     if (data.amount != null) patch.amount = data.amount;
     if (data.dueDate) patch.due_date = new Date(data.dueDate).toISOString();
     if (data.description !== undefined) patch.description = data.description || null;
+    if (data.lateFeeAmount !== undefined) patch.late_fee_amount = data.lateFeeAmount;
+    if (data.lateFeeTypeOverride !== undefined) patch.late_fee_type_override = data.lateFeeTypeOverride;
+    if (data.lateFeeValueOverride !== undefined) patch.late_fee_value_override = data.lateFeeValueOverride;
+    if (data.lateFeeGraceDaysOverride !== undefined) patch.late_fee_grace_days_override = data.lateFeeGraceDaysOverride;
+    if (data.lateFeeRecurrenceOverride !== undefined) patch.late_fee_recurrence_override = data.lateFeeRecurrenceOverride;
+    if (data.reminderDaysBeforeOverride !== undefined) patch.reminder_days_before_override = data.reminderDaysBeforeOverride;
     if (Object.keys(patch).length === 0) return { ok: true };
     const { error } = await supabaseAdmin
       .from("installments")
       .update(patch as never)
       .eq("id", data.installmentId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+/** Update schedule-level late-fee / reminder settings (admin/manager) */
+export const updateScheduleSettings = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z.object({ scheduleId: z.string().uuid() }).merge(lateFeeSettingsSchema).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const roles = await getRoles(context.userId);
+    if (!roles.some((r) => ["admin", "manager"].includes(r))) {
+      throw new Error("غير مصرح");
+    }
+    const { error } = await supabaseAdmin
+      .from("installment_schedules")
+      .update(settingsToColumns(data) as never)
+      .eq("id", data.scheduleId);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
@@ -280,6 +334,7 @@ export const createCustomInstallmentSchedule = createServerFn({ method: "POST" }
           .min(1)
           .max(600),
       })
+      .merge(lateFeeSettingsSchema)
       .parse(input),
   )
   .handler(async ({ data, context }) => {
@@ -308,6 +363,7 @@ export const createCustomInstallmentSchedule = createServerFn({ method: "POST" }
         start_date: data.startDate,
         description: data.description || null,
         created_by: context.userId,
+        ...settingsToColumns(data),
       })
       .select()
       .single();

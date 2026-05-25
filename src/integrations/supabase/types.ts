@@ -135,7 +135,12 @@ export type Database = {
           description: string | null
           frequency: string
           id: string
+          late_fee_grace_days: number
+          late_fee_recurrence: string
+          late_fee_type: string
+          late_fee_value: number
           project_id: string
+          reminder_days_before: number
           resident_id: string
           start_date: string
           total_amount: number
@@ -147,7 +152,12 @@ export type Database = {
           description?: string | null
           frequency?: string
           id?: string
+          late_fee_grace_days?: number
+          late_fee_recurrence?: string
+          late_fee_type?: string
+          late_fee_value?: number
           project_id: string
+          reminder_days_before?: number
           resident_id: string
           start_date: string
           total_amount: number
@@ -159,7 +169,12 @@ export type Database = {
           description?: string | null
           frequency?: string
           id?: string
+          late_fee_grace_days?: number
+          late_fee_recurrence?: string
+          late_fee_type?: string
+          late_fee_value?: number
           project_id?: string
+          reminder_days_before?: number
           resident_id?: string
           start_date?: string
           total_amount?: number
@@ -177,6 +192,13 @@ export type Database = {
           id: string
           installment_index: number | null
           installments_total: number | null
+          late_fee_amount: number
+          late_fee_applied_at: string | null
+          late_fee_apply_count: number
+          late_fee_grace_days_override: number | null
+          late_fee_recurrence_override: string | null
+          late_fee_type_override: string | null
+          late_fee_value_override: number | null
           paid_amount: number
           paid_at: string | null
           paid_by_name: string | null
@@ -184,6 +206,7 @@ export type Database = {
           project_id: string
           receipt_url: string | null
           rejection_reason: string | null
+          reminder_days_before_override: number | null
           resident_id: string
           schedule_id: string | null
           serial: string
@@ -199,6 +222,13 @@ export type Database = {
           id?: string
           installment_index?: number | null
           installments_total?: number | null
+          late_fee_amount?: number
+          late_fee_applied_at?: string | null
+          late_fee_apply_count?: number
+          late_fee_grace_days_override?: number | null
+          late_fee_recurrence_override?: string | null
+          late_fee_type_override?: string | null
+          late_fee_value_override?: number | null
           paid_amount?: number
           paid_at?: string | null
           paid_by_name?: string | null
@@ -206,6 +236,7 @@ export type Database = {
           project_id: string
           receipt_url?: string | null
           rejection_reason?: string | null
+          reminder_days_before_override?: number | null
           resident_id: string
           schedule_id?: string | null
           serial: string
@@ -221,6 +252,13 @@ export type Database = {
           id?: string
           installment_index?: number | null
           installments_total?: number | null
+          late_fee_amount?: number
+          late_fee_applied_at?: string | null
+          late_fee_apply_count?: number
+          late_fee_grace_days_override?: number | null
+          late_fee_recurrence_override?: string | null
+          late_fee_type_override?: string | null
+          late_fee_value_override?: number | null
           paid_amount?: number
           paid_at?: string | null
           paid_by_name?: string | null
@@ -228,6 +266,7 @@ export type Database = {
           project_id?: string
           receipt_url?: string | null
           rejection_reason?: string | null
+          reminder_days_before_override?: number | null
           resident_id?: string
           schedule_id?: string | null
           serial?: string
@@ -602,6 +641,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      apply_installment_late_fees: { Args: never; Returns: undefined }
       cleanup_notification_dedup: { Args: never; Returns: undefined }
       has_role: {
         Args: {

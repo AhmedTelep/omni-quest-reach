@@ -86,7 +86,7 @@ function ResidentDetailPage() {
     onError: (e: Error) => toast.error(e.message),
   });
   const updateMut = useMutation({
-    mutationFn: (vars: { installmentId: string; amount?: number; dueDate?: string; description?: string }) =>
+    mutationFn: (vars: { installmentId: string; amount?: number; dueDate?: string; description?: string; lateFeeAmount?: number }) =>
       updateFn({ data: vars }),
     onSuccess: () => {
       toast.success("تم تحديث القسط");
@@ -407,6 +407,9 @@ function ResidentDetailPage() {
                       <td className="p-3">
                         <div className="font-medium">{fmtMoney(amount)}</div>
                         {paid > 0 && <div className="text-xs text-emerald-600">مدفوع: {fmtMoney(paid)}</div>}
+                        {Number(it.late_fee_amount ?? 0) > 0 && (
+                          <div className="text-xs text-rose-600">غرامة: {fmtMoney(Number(it.late_fee_amount))}</div>
+                        )}
                       </td>
                       <td className="p-3 text-muted-foreground">{fmtDate(it.due_date)}</td>
                       <td className="p-3 text-muted-foreground">{fmtDate(it.paid_at)}</td>
@@ -424,7 +427,8 @@ function ResidentDetailPage() {
                               projectLogo: r.projects?.logo,
                               installmentAmount: amount,
                               paidAmount: paid,
-                              remainingAmount: Math.max(0, amount - paid),
+                              remainingAmount: Math.max(0, amount + Number(it.late_fee_amount ?? 0) - paid),
+                              lateFeeAmount: Number(it.late_fee_amount ?? 0),
                               description: it.description,
                               dueDate: it.due_date,
                               paidAt: it.paid_at,
@@ -474,11 +478,13 @@ function ResidentDetailPage() {
             <form className="space-y-3" onSubmit={(e) => {
               e.preventDefault();
               const fd = new FormData(e.currentTarget);
+              const lfRaw = String(fd.get("lateFeeAmount") ?? "");
               updateMut.mutate({
                 installmentId: editing.id,
                 amount: Number(fd.get("amount")),
                 dueDate: String(fd.get("due")),
                 description: String(fd.get("desc") ?? ""),
+                lateFeeAmount: lfRaw === "" ? undefined : Number(lfRaw),
               });
             }}>
               <div className="space-y-1.5"><Label>المبلغ</Label>
@@ -489,6 +495,10 @@ function ResidentDetailPage() {
               </div>
               <div className="space-y-1.5"><Label>الوصف</Label>
                 <Textarea name="desc" defaultValue={editing.description ?? ""} />
+              </div>
+              <div className="space-y-1.5"><Label>غرامة التأخير المتراكمة (ج.م)</Label>
+                <Input name="lateFeeAmount" type="number" step="0.01" min="0" defaultValue={editing.late_fee_amount ?? 0} />
+                <p className="text-[11px] text-muted-foreground">تُحسب تلقائياً يومياً وفق إعدادات الجدول — يمكنك تعديلها أو تصفيرها يدوياً.</p>
               </div>
               <DialogFooter>
                 <Button type="submit" disabled={updateMut.isPending}>{updateMut.isPending ? "جاري…" : "حفظ"}</Button>

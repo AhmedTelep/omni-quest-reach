@@ -68,10 +68,11 @@ function MyInstallmentsPage() {
       </div>
 
       <div className="space-y-3">
-        {items?.map((i: { id: string; serial: string; amount: number; paid_amount: number | null; payment_status: string | null; description: string | null; due_date: string | null; paid_at: string | null; confirmed_at: string | null; confirmed_by_name: string | null; paid_by_name: string | null; rejection_reason: string | null }) => {
+        {items?.map((i: { id: string; serial: string; amount: number; paid_amount: number | null; payment_status: string | null; description: string | null; due_date: string | null; paid_at: string | null; confirmed_at: string | null; confirmed_by_name: string | null; paid_by_name: string | null; rejection_reason: string | null; late_fee_amount: number | null }) => {
           const amount = Number(i.amount);
           const paid = Number(i.paid_amount ?? 0);
-          const remaining = Math.max(0, amount - paid);
+          const lateFee = Number(i.late_fee_amount ?? 0);
+          const remaining = Math.max(0, amount + lateFee - paid);
           const canPay = remaining > 0 && i.payment_status !== "confirmed";
           const proj = (resident as { projects?: { name_ar?: string; logo?: string | null } } | null)?.projects;
           return (
@@ -87,6 +88,7 @@ function MyInstallmentsPage() {
                 <p className="mt-1 font-mono text-xs text-muted-foreground">{i.serial}</p>
                 <div className="mt-1 flex flex-wrap gap-3 text-xs">
                   <span className="text-emerald-600">مدفوع: {paid.toLocaleString()} ج.م</span>
+                  {lateFee > 0 && <span className="text-rose-600">غرامة تأخير: {lateFee.toLocaleString()} ج.م</span>}
                   {remaining > 0 && <span className="text-rose-600">متبقي: {remaining.toLocaleString()} ج.م</span>}
                 </div>
                 {i.description && <p className="mt-1 text-sm text-muted-foreground">{i.description}</p>}
@@ -104,6 +106,7 @@ function MyInstallmentsPage() {
                     installmentAmount: amount,
                     paidAmount: paid,
                     remainingAmount: remaining,
+                    lateFeeAmount: lateFee,
                     description: i.description,
                     dueDate: i.due_date,
                     paidAt: i.paid_at,

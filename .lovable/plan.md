@@ -1,84 +1,74 @@
-# خطة تحسين نظام الأقساط
 
-## 1. سيريال فريد للقسط (Installment Serial)
-- إضافة عمود `serial` (text, unique) لجدول `installments`
-- توليده تلقائياً بصيغة: `INS-YYYYMM-XXXXXX` (مثلاً `INS-202605-000123`)
-- استخدام sequence في Postgres + trigger لضمان عدم التكرار
-- عرض السيريال في صفحات الأقساط (الإدارة + الساكن)
+## الهدف
+إضافة بند **غرامة تأخير** و**تذكير مسبق** قابلَين للتخصيص لكل ساكن عند إنشاء/تعديل جدول الأقساط، مع إشعار الساكن قبل موعد كل قسط بعدد الأيام المحدد، وتطبيق الغرامة تلقائياً على الأقساط المتأخرة.
 
-## 2. الدفع الجزئي (Partial Payments)
-حالياً كل قسط = دفعة واحدة. سنضيف:
-- عمود `paid_amount` (numeric, default 0) في `installments`
-- عمود `remaining_amount` محسوب (`amount - paid_amount`)
-- جدول جديد `installment_payments`:
-  - `installment_id`, `amount`, `receipt_url`, `paid_at`, `paid_by_name`
-  - `payment_status` (pending/confirmed/rejected)
-  - `confirmed_at`, `confirmed_by_name`, `rejection_reason`
-  - `serial` (PAY-YYYYMM-XXXXXX)
-- تحديث الحالة تلقائياً: `paid` عند `paid_amount >= amount`، `partial` عند جزئي، `pending` لا شيء
-- تحديث RLS: الساكن يضيف دفعات لأقساطه فقط، الموظف يؤكد/يرفض
+## التغييرات على قاعدة البيانات
 
-## 3. جدولة الأقساط لكل عميل (Schedule)
-- نموذج "إنشاء جدول أقساط" في صفحة تفاصيل الساكن:
-  - المبلغ الإجمالي
-  - عدد الأقساط
-  - تاريخ أول قسط
-  - تكرار (شهري / ربع سنوي / سنوي)
-  - وصف
-- زر يولّد كل الأقساط دفعة واحدة (server function) مع سيريال لكل قسط
-- عرض الجدول في صفحة الساكن: ملخص (المدفوع/المتبقي/التالي مستحق)
+### 1) جدول `installment_schedules` — إضافة إعدادات افتراضية للجدول
+- `late_fee_type` — `text` — `"none" | "fixed" | "percent"` (افتراضي `none`)
+- `late_fee_value` — `numeric` (مبلغ ثابت أو نسبة مئوية)
+- `late_fee_grace_days` — `integer` (عدد أيام السماح بعد الاستحقاق قبل تفعيل الغرامة، افتراضي 0)
+- `late_fee_recurrence` — `text` — `"once" | "daily" | "weekly" | "monthly"` (افتراضي `once`)
+- `reminder_days_before` — `integer` (عدد الأيام قبل الاستحقاق لإرسال التذكير، افتراضي 3)
 
-## 4. PDF استمارة تأكيد الدفع
-- زر "تحميل إيصال تأكيد" يظهر بعد تأكيد القسط/الدفعة
-- يولّد PDF بالعربية يحتوي:
-  - شعار المشروع + اسمه
-  - سيريال القسط + سيريال الدفعة
-  - اسم الساكن + رقم الوحدة
-  - المبلغ المدفوع + المتبقي + الإجمالي
-  - تاريخ الدفع + اسم المؤكد
-  - QR code للتحقق (يحوي السيريال)
-- باستخدام `jspdf` + `jspdf-autotable` مع خط عربي
-- يتم التوليد client-side في المتصفح
+### 2) جدول `installments` — إضافة حقول الغرامة على مستوى القسط
+- `late_fee_amount` — `numeric` افتراضي 0 (الغرامة المتراكمة الحالية)
+- `late_fee_applied_at` — `timestamptz` (آخر مرة طُبّقت فيها الغرامة)
+- إمكانية override يدوي على القسط لاحقاً (نفس الأعمدة الخمسة أعلاه كـ nullable للسماح بالتخصيص لكل قسط).
 
-## 5. تغييرات قاعدة البيانات (Migration)
-```sql
--- Sequence + serial for installments
-CREATE SEQUENCE installments_serial_seq;
-ALTER TABLE installments ADD COLUMN serial text UNIQUE;
-ALTER TABLE installments ADD COLUMN paid_amount numeric NOT NULL DEFAULT 0;
-ALTER TABLE installments ADD COLUMN installments_count integer; -- رقم القسط من العدد الكلي
-ALTER TABLE installments ADD COLUMN installment_index integer; -- ترتيب القسط
-ALTER TABLE installments ADD COLUMN schedule_id uuid; -- ربط بالجدول
+### 3) دالة `apply_installment_late_fees()`
+- تمرّ على كل الأقساط غير المدفوعة التي تجاوزت `due_date + grace_days`.
+- تحسب الغرامة حسب النوع (ثابت/نسبة) والتكرار (مرة/يومي/أسبوعي/شهري).
+- تحدّث `late_fee_amount` على القسط، وتُرسل إشعاراً للساكن بالغرامة الجديدة.
 
--- جدول الجدولة
-CREATE TABLE installment_schedules (
-  id uuid PK, resident_id, project_id, total_amount, count, 
-  frequency text, start_date, description, created_by, created_at
-);
+### 4) تحديث دالة `run_installment_reminders()` الموجودة
+- بدل الـ 3 أيام الثابتة، تستخدم `reminder_days_before` من جدول الساكن `installment_schedules`.
+- تشمل أيضاً تذكيراً بقيمة الغرامة المتوقعة إذا تأخر الدفع.
 
--- جدول الدفعات الجزئية
-CREATE TABLE installment_payments (
-  id uuid PK, installment_id, serial text UNIQUE,
-  amount, receipt_url, paid_at, paid_by_name,
-  payment_status, confirmed_at, confirmed_by_name, rejection_reason,
-  created_at, updated_at
-);
+### 5) جدولة `pg_cron` (مرة يومياً)
+- استدعاء `apply_installment_late_fees()` + `run_installment_reminders()`.
 
--- Triggers لتوليد السيريال + تحديث paid_amount + الحالة
-```
+## التغييرات على الواجهة
 
-## 6. ملفات الكود الجديدة/المُعدّلة
-- `src/lib/installments.functions.ts` — server fns: `createSchedule`, `addPayment`, `decidePayment`
-- `src/lib/installment-pdf.ts` — توليد PDF
-- `src/routes/_authenticated/installments.tsx` — عرض السيريال + الدفعات + زر PDF
-- `src/routes/_authenticated/my-installments.tsx` — دفع جزئي + PDF
-- `src/routes/_authenticated/residents_.$residentId.tsx` — قسم جدولة الأقساط
-- مكوّن `InstallmentScheduleDialog`
-- مكوّن `PaymentsListDialog` لعرض دفعات قسط
+### `src/components/installment-sheet-dialog.tsx`
+قسم جديد **"إعدادات الغرامة والتذكير"** يحتوي:
+- نوع الغرامة: لا يوجد / مبلغ ثابت / نسبة من القسط (Select)
+- قيمة الغرامة (Input number)
+- أيام السماح بعد الاستحقاق (Input number)
+- تكرار الغرامة (Select)
+- أيام التذكير المسبق قبل الاستحقاق (Input number)
 
-## التنفيذ بالترتيب
-1. Migration لكل التغييرات في الـ DB
-2. server functions
-3. PDF helper + خط عربي
-4. تحديث الصفحات الموجودة
-5. اختبار يدوي
+تُحفظ في الجدول `installment_schedules` وتُورَّث للأقساط.
+
+### `src/routes/_authenticated/residents_.$residentId.tsx`
+- عرض إعدادات الغرامة/التذكير الحالية للساكن مع زر "تعديل".
+- في صف كل قسط: عمود جديد "غرامة" يعرض `late_fee_amount` (إن وُجدت).
+- دايلوج تعديل القسط: إضافة override للغرامة لهذا القسط فقط.
+- الإجمالي المستحق = `amount + late_fee_amount - paid_amount`.
+
+### `src/routes/_authenticated/my-installments.tsx`
+- إظهار الغرامة بشكل واضح (Badge أحمر) فوق المبلغ المتبقي.
+- إذا فيه `late_fee_amount > 0` يظهر: "غرامة تأخير: X ج.م".
+
+### `src/lib/installment-pdf.ts`
+- إضافة سطر "غرامة تأخير" في إيصال الـ PDF عند وجودها.
+
+## التغييرات على Server Functions
+
+### `src/lib/installments.functions.ts`
+- توسيع `createCustomInstallmentSchedule` schema لقبول إعدادات الغرامة/التذكير.
+- إضافة `updateScheduleSettings` لتحديث الإعدادات لاحقاً.
+- توسيع `updateInstallment` لقبول override الغرامة لكل قسط.
+
+## ترتيب التنفيذ
+1. Migration: إضافة الأعمدة + الدوال + الـ cron.
+2. تحديث الـ types من Supabase تلقائياً.
+3. تعديل `installments.functions.ts`.
+4. تعديل `installment-sheet-dialog.tsx`.
+5. تعديل صفحة تفاصيل الساكن وصفحة أقساطي.
+6. تعديل قالب الـ PDF.
+7. اختبار: إنشاء ساكن بإعدادات غرامة، تشغيل الدالة يدوياً، التأكد من ظهور الغرامة والإشعار.
+
+## أسئلة قبل البدء
+- هل تريد أن تكون الغرامة الافتراضية **نسبة من قيمة القسط** (مثلاً 1%) أم **مبلغ ثابت** (مثلاً 100 ج.م)؟ وهل لها قيمة افتراضية على مستوى المشروع كله أم تُحدّد لكل ساكن من الصفر؟
+- تكرار الغرامة: **مرة واحدة** عند التأخير، أم **متراكمة يومياً/أسبوعياً/شهرياً** حتى السداد؟

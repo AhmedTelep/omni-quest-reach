@@ -11,6 +11,8 @@ import { Plus, Trash2, RefreshCw } from "lucide-react";
 import { createCustomInstallmentSchedule } from "@/lib/installments.functions";
 
 type Frequency = "weekly" | "monthly" | "quarterly" | "biannual" | "yearly";
+type LateFeeType = "none" | "fixed" | "percent";
+type LateFeeRecurrence = "once" | "daily" | "weekly" | "monthly";
 
 export type SheetRow = {
   id: string;
@@ -95,6 +97,11 @@ export function InstallmentSheetDialog({
   const [downPayment, setDownPayment] = useState<number>(0);
   const [desc, setDesc] = useState<string>("");
   const [rows, setRows] = useState<SheetRow[]>([]);
+  const [lateFeeType, setLateFeeType] = useState<LateFeeType>("none");
+  const [lateFeeValue, setLateFeeValue] = useState<number>(0);
+  const [lateFeeGraceDays, setLateFeeGraceDays] = useState<number>(0);
+  const [lateFeeRecurrence, setLateFeeRecurrence] = useState<LateFeeRecurrence>("once");
+  const [reminderDaysBefore, setReminderDaysBefore] = useState<number>(3);
 
   // Auto-generate when params change (only if rows weren't manually edited yet)
   useEffect(() => {
@@ -151,6 +158,11 @@ export function InstallmentSheetDialog({
           frequency,
           startDate,
           description: desc,
+          lateFeeType,
+          lateFeeValue,
+          lateFeeGraceDays,
+          lateFeeRecurrence,
+          reminderDaysBefore,
           installments: rows.map((r) => ({
             amount: Number(r.amount),
             dueDate: r.dueDate,
@@ -220,6 +232,50 @@ export function InstallmentSheetDialog({
               <Plus className="ms-2 h-4 w-4" /> إضافة قسط
             </Button>
           </div>
+        </div>
+
+        <div className="rounded-md border bg-muted/30 p-3 space-y-3">
+          <div className="text-sm font-semibold">إعدادات الغرامة والتذكير</div>
+          <div className="grid gap-3 md:grid-cols-5">
+            <div className="space-y-1.5">
+              <Label>نوع الغرامة</Label>
+              <Select value={lateFeeType} onValueChange={(v) => setLateFeeType(v as LateFeeType)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">بدون غرامة</SelectItem>
+                  <SelectItem value="fixed">مبلغ ثابت</SelectItem>
+                  <SelectItem value="percent">نسبة % من القسط</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>{lateFeeType === "percent" ? "النسبة %" : "قيمة الغرامة"}</Label>
+              <Input type="number" step="0.01" min="0" value={lateFeeValue} onChange={(e) => setLateFeeValue(Number(e.target.value))} disabled={lateFeeType === "none"} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>أيام السماح</Label>
+              <Input type="number" min="0" value={lateFeeGraceDays} onChange={(e) => setLateFeeGraceDays(Number(e.target.value))} disabled={lateFeeType === "none"} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>تكرار الغرامة</Label>
+              <Select value={lateFeeRecurrence} onValueChange={(v) => setLateFeeRecurrence(v as LateFeeRecurrence)} disabled={lateFeeType === "none"}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="once">مرة واحدة</SelectItem>
+                  <SelectItem value="daily">يومي</SelectItem>
+                  <SelectItem value="weekly">أسبوعي</SelectItem>
+                  <SelectItem value="monthly">شهري</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>تذكير قبل (أيام)</Label>
+              <Input type="number" min="0" max="365" value={reminderDaysBefore} onChange={(e) => setReminderDaysBefore(Number(e.target.value))} />
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            يتم احتساب الغرامة تلقائياً بعد أيام السماح، ويُرسل للساكن إشعار قبل موعد كل قسط بعدد الأيام المحدد.
+          </p>
         </div>
 
         <div className="max-h-[45vh] overflow-auto rounded border">
