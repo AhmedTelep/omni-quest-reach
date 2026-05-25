@@ -257,3 +257,82 @@ export const deleteInstallment = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+/** Create a fully-customized installment sheet (rows defined by user). */
+export const createCustomInstallmentSchedule = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z
+      .object({
+        residentId: z.string().uuid(),
+        frequency: z.enum(["weekly", "monthly", "quarterly", "biannual", "yearly", "custom"]),
+        startDate: z.string().min(1),
+        description: z.string().max(500).optional().default(""),
+        installments: z
+          .array(
+            z.object({
+              amount: z.number().positive().max(1_000_000_000),
+              dueDate: z.string().min(1),
+              description: z.string().max(500).optional().default(""),
+              isDownPayment: z.boolean().optional().default(false),
+            }),
+          )
+          .min(1)
+          .max(600),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const roles = await getRoles(context.userId);
+    if (!roles.some((r) => ["admin", "manager"].includes(r))) {
+      throw new Error("غير مصرح بإنشاء جدول أقساط");
+    }
+    const { data: resident, error: rerr } = await supabaseAdmin
+      .from("residents")
+      .select("id, project_id")
+      .eq("id", data.residentId)
+      .maybeSingle();
+    if (rerr) throw new Error(rerr.message);
+    if (!resident?.project_id) throw new Error("الساكن غير مرتبط بمشروع");
+
+    const total = data.installments.reduce((s, x) => s + x.amount, 0);
+    const freqForSchedule = data.frequency === "custom" ? "monthly" : data.frequency;
+    const { data: sched, error: serr } = await supabaseAdmin
+      .from("installment_schedules")
+      .insert({
+        resident_id: data.residentId,
+        project_id: resident.project_id,
+        total_amount: total,
+        count: data.installments.length,
+        frequency: freqForSchedule,
+        start_date: data.startDate,
+        description: data.description || null,
+        created_by: context.userId,
+      })
+      .select()
+      .single();
+    if (serr) throw new Error(serr.message);
+
+    const nonDownCount = data.installments.filter((x) => !x.isDownPayment).length;
+    let idx = 0;
+    let nonDownIdx = 0;
+    const rows = data.installments.map((row) => {
+      const isDown = row.isDownPayment;
+      const label = isDown
+        ? row.description || "دفعة مقدمة"
+        : row.description || `قسط ${++nonDownIdx}/${nonDownCount}`;
+      return {
+        resident_id: data.residentId,
+        project_id: resident.project_id,
+        amount: row.amount,
+        description: data.description ? `${data.description} — ${label}` : label,
+        due_date: new Date(row.dueDate).toISOString(),
+        schedule_id: sched.id,
+        installment_index: isDown ? 0 : ++idx,
+        installments_total: nonDownCount,
+      };
+    });
+    const { error: ierr } = await supabaseAdmin.from("installments").insert(rows as never);
+    if (ierr) throw new Error(ierr.message);
+    return { ok: true, scheduleId: sched.id, created: rows.length };
+  });
