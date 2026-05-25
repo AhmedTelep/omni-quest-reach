@@ -303,6 +303,7 @@ export const createCustomInstallmentSchedule = createServerFn({ method: "POST" }
           .min(1)
           .max(600),
       })
+      .merge(lateFeeSettingsSchema)
       .parse(input),
   )
   .handler(async ({ data, context }) => {
@@ -331,6 +332,7 @@ export const createCustomInstallmentSchedule = createServerFn({ method: "POST" }
         start_date: data.startDate,
         description: data.description || null,
         created_by: context.userId,
+        ...settingsToColumns(data),
       })
       .select()
       .single();
