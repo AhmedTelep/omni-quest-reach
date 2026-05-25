@@ -296,7 +296,8 @@ export const createInstallment = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     // Sales manager has read-only access to installments per business rules.
     await assertCallerHasRoles(context.userId, ["admin", "manager"]);
-    const { error } = await supabaseAdmin.from("installments").insert(data);
+    // serial is filled by a BEFORE INSERT trigger
+    const { error } = await supabaseAdmin.from("installments").insert(data as never);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
