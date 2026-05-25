@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useNotifications } from "@/hooks/use-notifications";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -22,7 +22,7 @@ const TYPE_LABEL: Record<string, string> = {
 
 function NotificationsPage() {
   const { items, markRead, markAllRead, unreadCount } = useNotifications();
-  const navigate = useNavigate();
+  const router = useRouter();
   const [filter, setFilter] = useState<"all" | "unread">("all");
 
   const list = filter === "unread" ? items.filter((n) => !n.is_read) : items;
@@ -57,8 +57,7 @@ function NotificationsPage() {
               onClick={() => {
                 if (!n.is_read) markRead.mutate(n.id);
                 if (n.link) {
-                  const [path, hash] = n.link.split("#");
-                  navigate({ to: path, hash: hash || undefined });
+                  router.history.push(n.link);
                 }
               }}
             >
