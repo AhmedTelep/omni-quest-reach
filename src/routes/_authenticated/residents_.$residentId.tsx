@@ -168,6 +168,10 @@ function ResidentDetailPage() {
     },
   });
 
+  const installmentsCount = installments.data?.length ?? 0;
+  const requestsCount = requests.data?.length ?? 0;
+  useScrollToHash([installmentsCount, requestsCount]);
+
   if (rolesLoading) {
     return <div className="p-8 text-center text-muted-foreground">جاري التحميل…</div>;
   }
@@ -197,7 +201,6 @@ function ResidentDetailPage() {
 
   const r = resident.data as any;
   const items = installments.data ?? [];
-  useScrollToHash([items.length, requests.data?.length]);
   const totalAmount = items.reduce((s: number, x: any) => s + Number(x.amount || 0), 0);
   const paidAmount = items
     .reduce((s: number, x: any) => s + Number(x.paid_amount ?? 0), 0);
