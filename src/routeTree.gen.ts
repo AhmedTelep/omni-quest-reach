@@ -24,6 +24,7 @@ import { Route as AuthenticatedInstallmentsRouteImport } from './routes/_authent
 import { Route as AuthenticatedEmployeesRouteImport } from './routes/_authenticated/employees'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedAnnouncementsRouteImport } from './routes/_authenticated/announcements'
+import { Route as AuthenticatedResidentsResidentIdRouteImport } from './routes/_authenticated/residents.$residentId'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -103,6 +104,12 @@ const AuthenticatedAnnouncementsRoute =
     path: '/announcements',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedResidentsResidentIdRoute =
+  AuthenticatedResidentsResidentIdRouteImport.update({
+    id: '/$residentId',
+    path: '/$residentId',
+    getParentRoute: () => AuthenticatedResidentsRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -116,9 +123,10 @@ export interface FileRoutesByFullPath {
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/projects': typeof AuthenticatedProjectsRoute
   '/requests': typeof AuthenticatedRequestsRoute
-  '/residents': typeof AuthenticatedResidentsRoute
+  '/residents': typeof AuthenticatedResidentsRouteWithChildren
   '/services': typeof AuthenticatedServicesRoute
   '/units': typeof AuthenticatedUnitsRoute
+  '/residents/$residentId': typeof AuthenticatedResidentsResidentIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -132,9 +140,10 @@ export interface FileRoutesByTo {
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/projects': typeof AuthenticatedProjectsRoute
   '/requests': typeof AuthenticatedRequestsRoute
-  '/residents': typeof AuthenticatedResidentsRoute
+  '/residents': typeof AuthenticatedResidentsRouteWithChildren
   '/services': typeof AuthenticatedServicesRoute
   '/units': typeof AuthenticatedUnitsRoute
+  '/residents/$residentId': typeof AuthenticatedResidentsResidentIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -150,9 +159,10 @@ export interface FileRoutesById {
   '/_authenticated/notifications': typeof AuthenticatedNotificationsRoute
   '/_authenticated/projects': typeof AuthenticatedProjectsRoute
   '/_authenticated/requests': typeof AuthenticatedRequestsRoute
-  '/_authenticated/residents': typeof AuthenticatedResidentsRoute
+  '/_authenticated/residents': typeof AuthenticatedResidentsRouteWithChildren
   '/_authenticated/services': typeof AuthenticatedServicesRoute
   '/_authenticated/units': typeof AuthenticatedUnitsRoute
+  '/_authenticated/residents/$residentId': typeof AuthenticatedResidentsResidentIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -171,6 +181,7 @@ export interface FileRouteTypes {
     | '/residents'
     | '/services'
     | '/units'
+    | '/residents/$residentId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -187,6 +198,7 @@ export interface FileRouteTypes {
     | '/residents'
     | '/services'
     | '/units'
+    | '/residents/$residentId'
   id:
     | '__root__'
     | '/'
@@ -204,6 +216,7 @@ export interface FileRouteTypes {
     | '/_authenticated/residents'
     | '/_authenticated/services'
     | '/_authenticated/units'
+    | '/_authenticated/residents/$residentId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -319,8 +332,30 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAnnouncementsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/residents/$residentId': {
+      id: '/_authenticated/residents/$residentId'
+      path: '/$residentId'
+      fullPath: '/residents/$residentId'
+      preLoaderRoute: typeof AuthenticatedResidentsResidentIdRouteImport
+      parentRoute: typeof AuthenticatedResidentsRoute
+    }
   }
 }
+
+interface AuthenticatedResidentsRouteChildren {
+  AuthenticatedResidentsResidentIdRoute: typeof AuthenticatedResidentsResidentIdRoute
+}
+
+const AuthenticatedResidentsRouteChildren: AuthenticatedResidentsRouteChildren =
+  {
+    AuthenticatedResidentsResidentIdRoute:
+      AuthenticatedResidentsResidentIdRoute,
+  }
+
+const AuthenticatedResidentsRouteWithChildren =
+  AuthenticatedResidentsRoute._addFileChildren(
+    AuthenticatedResidentsRouteChildren,
+  )
 
 interface AuthenticatedRouteChildren {
   AuthenticatedAnnouncementsRoute: typeof AuthenticatedAnnouncementsRoute
@@ -332,7 +367,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedNotificationsRoute: typeof AuthenticatedNotificationsRoute
   AuthenticatedProjectsRoute: typeof AuthenticatedProjectsRoute
   AuthenticatedRequestsRoute: typeof AuthenticatedRequestsRoute
-  AuthenticatedResidentsRoute: typeof AuthenticatedResidentsRoute
+  AuthenticatedResidentsRoute: typeof AuthenticatedResidentsRouteWithChildren
   AuthenticatedServicesRoute: typeof AuthenticatedServicesRoute
   AuthenticatedUnitsRoute: typeof AuthenticatedUnitsRoute
 }
@@ -347,7 +382,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedNotificationsRoute: AuthenticatedNotificationsRoute,
   AuthenticatedProjectsRoute: AuthenticatedProjectsRoute,
   AuthenticatedRequestsRoute: AuthenticatedRequestsRoute,
-  AuthenticatedResidentsRoute: AuthenticatedResidentsRoute,
+  AuthenticatedResidentsRoute: AuthenticatedResidentsRouteWithChildren,
   AuthenticatedServicesRoute: AuthenticatedServicesRoute,
   AuthenticatedUnitsRoute: AuthenticatedUnitsRoute,
 }
