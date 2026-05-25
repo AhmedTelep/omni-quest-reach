@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useNotifications } from "@/hooks/use-notifications";
-import { useNavigate } from "@tanstack/react-router";
+import { useRouter, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 
 function relTime(iso: string) {
@@ -21,14 +21,14 @@ function relTime(iso: string) {
 export function NotificationBell() {
   const { items, unreadCount, markRead, markAllRead } = useNotifications();
   const navigate = useNavigate();
+  const router = useRouter();
   const [open, setOpen] = useState(false);
 
   const handleClick = (n: typeof items[number]) => {
     if (!n.is_read) markRead.mutate(n.id);
     if (n.link) {
       setOpen(false);
-      const [path, hash] = n.link.split("#");
-      navigate({ to: path, hash: hash || undefined });
+      router.history.push(n.link);
     }
   };
 
