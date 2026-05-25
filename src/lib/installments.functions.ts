@@ -179,7 +179,7 @@ export const deleteInstallmentSchedule = createServerFn({ method: "POST" })
       .from("installments")
       .delete()
       .eq("schedule_id", data.scheduleId)
-      .is("paid_amount", 0)
+      .eq("paid_amount", 0 as never)
       .or("payment_status.is.null,payment_status.neq.confirmed");
     await supabaseAdmin.from("installment_schedules").delete().eq("id", data.scheduleId);
     return { ok: true };
