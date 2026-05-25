@@ -13,6 +13,7 @@ function addPeriod(date: Date, freq: string, n: number): Date {
   if (freq === "weekly") d.setDate(d.getDate() + n * 7);
   else if (freq === "monthly") d.setMonth(d.getMonth() + n);
   else if (freq === "quarterly") d.setMonth(d.getMonth() + n * 3);
+  else if (freq === "biannual") d.setMonth(d.getMonth() + n * 6);
   else if (freq === "yearly") d.setFullYear(d.getFullYear() + n);
   return d;
 }
@@ -26,9 +27,10 @@ export const createInstallmentSchedule = createServerFn({ method: "POST" })
         residentId: z.string().uuid(),
         totalAmount: z.number().positive().max(1_000_000_000),
         count: z.number().int().min(1).max(600),
-        frequency: z.enum(["weekly", "monthly", "quarterly", "yearly"]),
+        frequency: z.enum(["weekly", "monthly", "quarterly", "biannual", "yearly"]),
         startDate: z.string().min(1),
         description: z.string().max(500).optional().default(""),
+        downPayment: z.number().min(0).max(1_000_000_000).optional().default(0),
       })
       .parse(input),
   )
@@ -61,14 +63,30 @@ export const createInstallmentSchedule = createServerFn({ method: "POST" })
       .single();
     if (serr) throw new Error(serr.message);
 
-    const per = Math.round((data.totalAmount / data.count) * 100) / 100;
+    const down = Math.min(data.downPayment ?? 0, data.totalAmount);
+    const remaining = Math.max(0, data.totalAmount - down);
+    const per = data.count > 0 ? Math.round((remaining / data.count) * 100) / 100 : 0;
     const rows: Array<Record<string, unknown>> = [];
     let acc = 0;
+    let idx = 0;
+    if (down > 0) {
+      rows.push({
+        resident_id: data.residentId,
+        project_id: resident.project_id,
+        amount: down,
+        description: data.description ? `${data.description} — دفعة مقدمة` : `دفعة مقدمة`,
+        due_date: new Date(data.startDate).toISOString(),
+        schedule_id: sched.id,
+        installment_index: 0,
+        installments_total: data.count,
+      });
+      idx = 1;
+    }
     for (let i = 0; i < data.count; i++) {
       const isLast = i === data.count - 1;
-      const amt = isLast ? Math.round((data.totalAmount - acc) * 100) / 100 : per;
+      const amt = isLast ? Math.round((remaining - acc) * 100) / 100 : per;
       acc += amt;
-      const dueDate = addPeriod(new Date(data.startDate), data.frequency, i);
+      const dueDate = addPeriod(new Date(data.startDate), data.frequency, i + (down > 0 ? 1 : 0));
       rows.push({
         resident_id: data.residentId,
         project_id: resident.project_id,
@@ -79,6 +97,7 @@ export const createInstallmentSchedule = createServerFn({ method: "POST" })
         installment_index: i + 1,
         installments_total: data.count,
       });
+      idx++;
     }
     const { error: ierr } = await supabaseAdmin.from("installments").insert(rows as never);
     if (ierr) throw new Error(ierr.message);
@@ -182,5 +201,59 @@ export const deleteInstallmentSchedule = createServerFn({ method: "POST" })
       .eq("paid_amount", 0 as never)
       .or("payment_status.is.null,payment_status.neq.confirmed");
     await supabaseAdmin.from("installment_schedules").delete().eq("id", data.scheduleId);
+    return { ok: true };
+  });
+
+/** Update a single installment (amount/due_date/description) — staff only */
+export const updateInstallment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z
+      .object({
+        installmentId: z.string().uuid(),
+        amount: z.number().positive().max(1_000_000_000).optional(),
+        dueDate: z.string().min(1).optional(),
+        description: z.string().max(500).optional(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const roles = await getRoles(context.userId);
+    if (!roles.some((r) => ["admin", "manager", "sales_manager", "accountant"].includes(r))) {
+      throw new Error("غير مصرح بتعديل القسط");
+    }
+    const patch: Record<string, unknown> = {};
+    if (data.amount != null) patch.amount = data.amount;
+    if (data.dueDate) patch.due_date = new Date(data.dueDate).toISOString();
+    if (data.description !== undefined) patch.description = data.description || null;
+    if (Object.keys(patch).length === 0) return { ok: true };
+    const { error } = await supabaseAdmin
+      .from("installments")
+      .update(patch as never)
+      .eq("id", data.installmentId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+/** Delete a single installment (admin/manager) */
+export const deleteInstallment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => z.object({ installmentId: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    const roles = await getRoles(context.userId);
+    if (!roles.some((r) => ["admin", "manager"].includes(r))) {
+      throw new Error("غير مصرح بحذف القسط");
+    }
+    // Block delete if there are confirmed payments
+    const { data: pays } = await supabaseAdmin
+      .from("installment_payments")
+      .select("id, payment_status")
+      .eq("installment_id", data.installmentId);
+    if ((pays ?? []).some((p) => p.payment_status === "confirmed")) {
+      throw new Error("لا يمكن حذف قسط به دفعات مؤكدة");
+    }
+    await supabaseAdmin.from("installment_payments").delete().eq("installment_id", data.installmentId);
+    const { error } = await supabaseAdmin.from("installments").delete().eq("id", data.installmentId);
+    if (error) throw new Error(error.message);
     return { ok: true };
   });

@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { createInstallmentSchedule } from "@/lib/installments.functions";
+import { createInstallmentSchedule, updateInstallment, deleteInstallment } from "@/lib/installments.functions";
 import { openReceiptPdf } from "@/lib/installment-pdf";
 import { toast } from "sonner";
 import {
@@ -27,6 +27,8 @@ import {
   Link as LinkIcon,
   CalendarPlus,
   Download,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/residents_/$residentId")({
@@ -69,13 +71,34 @@ function ResidentDetailPage() {
   const canSchedule = roles?.some((r) => ["admin", "manager"].includes(r)) ?? false;
   const qc = useQueryClient();
   const [schedOpen, setSchedOpen] = useState(false);
+  const [editing, setEditing] = useState<any | null>(null);
   const createSched = useServerFn(createInstallmentSchedule);
+  const updateFn = useServerFn(updateInstallment);
+  const deleteFn = useServerFn(deleteInstallment);
   const schedMut = useMutation({
-    mutationFn: (vars: { totalAmount: number; count: number; frequency: "weekly"|"monthly"|"quarterly"|"yearly"; startDate: string; description: string }) =>
+    mutationFn: (vars: { totalAmount: number; count: number; frequency: "weekly"|"monthly"|"quarterly"|"biannual"|"yearly"; startDate: string; description: string; downPayment: number }) =>
       createSched({ data: { residentId, ...vars } }),
     onSuccess: (res) => {
       toast.success(`تم إنشاء ${res.created} قسط`);
       setSchedOpen(false);
+      qc.invalidateQueries({ queryKey: ["resident-installments", residentId] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const updateMut = useMutation({
+    mutationFn: (vars: { installmentId: string; amount?: number; dueDate?: string; description?: string }) =>
+      updateFn({ data: vars }),
+    onSuccess: () => {
+      toast.success("تم تحديث القسط");
+      setEditing(null);
+      qc.invalidateQueries({ queryKey: ["resident-installments", residentId] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const deleteMut = useMutation({
+    mutationFn: (installmentId: string) => deleteFn({ data: { installmentId } }),
+    onSuccess: () => {
+      toast.success("تم حذف القسط");
       qc.invalidateQueries({ queryKey: ["resident-installments", residentId] });
     },
     onError: (e: Error) => toast.error(e.message),
@@ -310,12 +333,28 @@ function ResidentDetailPage() {
                     schedMut.mutate({
                       totalAmount: Number(fd.get("total")),
                       count: Number(fd.get("count")),
-                      frequency: String(fd.get("freq")) as "weekly"|"monthly"|"quarterly"|"yearly",
+                      frequency: String(fd.get("freq")) as "weekly"|"monthly"|"quarterly"|"biannual"|"yearly",
                       startDate: String(fd.get("start")),
                       description: String(fd.get("desc") ?? ""),
+                      downPayment: Number(fd.get("down") || 0),
                     });
                   }}>
-                    <div className="space-y-1.5"><Label>المبلغ الإجمالي</Label><Input name="total" type="number" step="0.01" required /></div>
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <Label>المبلغ الإجمالي</Label>
+                        {r.unit_price ? (
+                          <button type="button" className="text-xs text-primary underline" onClick={(e) => {
+                            const form = (e.currentTarget.closest("form") as HTMLFormElement);
+                            (form.elements.namedItem("total") as HTMLInputElement).value = String(r.unit_price);
+                          }}>استخدم سعر الوحدة ({fmtMoney(r.unit_price)})</button>
+                        ) : null}
+                      </div>
+                      <Input name="total" type="number" step="0.01" defaultValue={r.unit_price ?? undefined} required />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>دفعة مقدمة (اختياري)</Label>
+                      <Input name="down" type="number" step="0.01" min="0" defaultValue="0" />
+                    </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div className="space-y-1.5"><Label>عدد الأقساط</Label><Input name="count" type="number" min="1" max="600" required /></div>
                       <div className="space-y-1.5">
@@ -325,7 +364,8 @@ function ResidentDetailPage() {
                           <SelectContent>
                             <SelectItem value="weekly">أسبوعي</SelectItem>
                             <SelectItem value="monthly">شهري</SelectItem>
-                            <SelectItem value="quarterly">ربع سنوي</SelectItem>
+                            <SelectItem value="quarterly">كل 3 شهور</SelectItem>
+                            <SelectItem value="biannual">كل 6 شهور</SelectItem>
                             <SelectItem value="yearly">سنوي</SelectItem>
                           </SelectContent>
                         </Select>
@@ -352,6 +392,7 @@ function ResidentDetailPage() {
                   <th className="p-3">تاريخ الدفع</th>
                   <th className="p-3">الحالة</th>
                   <th className="p-3">الإيصال</th>
+                  {canSchedule && <th className="p-3">إجراءات</th>}
                 </tr>
               </thead>
               <tbody>
@@ -396,12 +437,25 @@ function ResidentDetailPage() {
                           {!it.receipt_url && it.payment_status !== "confirmed" && it.payment_status !== "partial" && <span className="text-muted-foreground">—</span>}
                         </div>
                       </td>
+                      {canSchedule && (
+                        <td className="p-3">
+                          <div className="flex gap-1">
+                            <Button size="icon" variant="ghost" onClick={() => setEditing(it)} title="تعديل">
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button size="icon" variant="ghost" className="text-destructive" disabled={deleteMut.isPending}
+                              onClick={() => { if (confirm(`حذف القسط ${it.serial}؟`)) deleteMut.mutate(it.id); }} title="حذف">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </td>
+                      )}
                     </tr>
                   );
                 })}
                 {items.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="p-8 text-center text-muted-foreground">
+                    <td colSpan={canSchedule ? 8 : 7} className="p-8 text-center text-muted-foreground">
                       لا توجد أقساط
                     </td>
                   </tr>
@@ -411,6 +465,38 @@ function ResidentDetailPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Edit installment dialog */}
+      {editing && (
+        <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
+          <DialogContent>
+            <DialogHeader><DialogTitle>تعديل القسط {editing.serial}</DialogTitle></DialogHeader>
+            <form className="space-y-3" onSubmit={(e) => {
+              e.preventDefault();
+              const fd = new FormData(e.currentTarget);
+              updateMut.mutate({
+                installmentId: editing.id,
+                amount: Number(fd.get("amount")),
+                dueDate: String(fd.get("due")),
+                description: String(fd.get("desc") ?? ""),
+              });
+            }}>
+              <div className="space-y-1.5"><Label>المبلغ</Label>
+                <Input name="amount" type="number" step="0.01" min="0.01" defaultValue={editing.amount} required />
+              </div>
+              <div className="space-y-1.5"><Label>تاريخ الاستحقاق</Label>
+                <Input name="due" type="date" defaultValue={editing.due_date ? new Date(editing.due_date).toISOString().slice(0,10) : ""} required />
+              </div>
+              <div className="space-y-1.5"><Label>الوصف</Label>
+                <Textarea name="desc" defaultValue={editing.description ?? ""} />
+              </div>
+              <DialogFooter>
+                <Button type="submit" disabled={updateMut.isPending}>{updateMut.isPending ? "جاري…" : "حفظ"}</Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+      )}
 
       {/* Maintenance Requests */}
       <Card>
