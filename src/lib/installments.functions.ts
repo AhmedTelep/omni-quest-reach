@@ -53,6 +53,7 @@ export const createInstallmentSchedule = createServerFn({ method: "POST" })
         description: z.string().max(500).optional().default(""),
         downPayment: z.number().min(0).max(1_000_000_000).optional().default(0),
       })
+      .merge(lateFeeSettingsSchema)
       .parse(input),
   )
   .handler(async ({ data, context }) => {
@@ -79,6 +80,7 @@ export const createInstallmentSchedule = createServerFn({ method: "POST" })
         start_date: data.startDate,
         description: data.description || null,
         created_by: context.userId,
+        ...settingsToColumns(data),
       })
       .select()
       .single();
