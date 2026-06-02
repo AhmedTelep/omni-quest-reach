@@ -1,0 +1,58 @@
+[
+  {
+    "id": "b4051997-eb70-4c8a-b518-66c25c210498",
+    "resident_id": "715340f8-3cbe-4192-b7e8-32329b23da79",
+    "project_id": "7407435b-16de-477a-b04e-66564f5b122c",
+    "service_id": null,
+    "service_type": "سباكة",
+    "notes": "تسريب في الحمام",
+    "image_url": null,
+    "preferred_date": null,
+    "status": "open",
+    "admin_notes": null,
+    "created_at": "2026-05-20T16:29:44.675898+00:00",
+    "updated_at": "2026-05-20T16:29:44.675898+00:00"
+  },
+  {
+    "id": "a16e7c0f-fd30-46e0-bfe1-ebb68ef8682d",
+    "resident_id": "715340f8-3cbe-4192-b7e8-32329b23da79",
+    "project_id": "7407435b-16de-477a-b04e-66564f5b122c",
+    "service_id": null,
+    "service_type": "كهرباء",
+    "notes": "مشكلة في الإنارة",
+    "image_url": null,
+    "preferred_date": null,
+    "status": "in_progress",
+    "admin_notes": null,
+    "created_at": "2026-05-20T16:29:44.675898+00:00",
+    "updated_at": "2026-05-20T16:29:44.675898+00:00"
+  },
+  {
+    "id": "238d2dd2-7fae-48a6-8d7b-8c2ad6a89ed9",
+    "resident_id": "80b4ae81-e3c8-4aa5-8d3a-689e958b4205",
+    "project_id": "7407435b-16de-477a-b04e-66564f5b122c",
+    "service_id": null,
+    "service_type": "كهرباء",
+    "notes": "مشكلة في الإنارة",
+    "image_url": null,
+    "preferred_date": null,
+    "status": "in_progress",
+    "admin_notes": null,
+    "created_at": "2026-05-20T16:29:44.675898+00:00",
+    "updated_at": "2026-05-20T16:29:44.675898+00:00"
+  },
+  {
+    "id": "4e682a18-b265-4aad-b1fd-49ba0e13aa55",
+    "resident_id": "80b4ae81-e3c8-4aa5-8d3a-689e958b4205",
+    "project_id": "7407435b-16de-477a-b04e-66564f5b122c",
+    "service_id": null,
+    "service_type": "سباكة",
+    "notes": "تسريب في الحمام",
+    "image_url": null,
+    "preferred_date": null,
+    "status": "completed",
+    "admin_notes": null,
+    "created_at": "2026-05-20T16:29:44.675898+00:00",
+    "updated_at": "2026-05-20T17:04:28.118424+00:00"
+  }
+]

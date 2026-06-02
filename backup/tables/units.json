@@ -1,0 +1,86 @@
+[
+  {
+    "id": "e55e6aa2-09ff-4076-afa4-ff1044873ef8",
+    "project_id": "7407435b-16de-477a-b04e-66564f5b122c",
+    "unit_number": "A 02",
+    "floor": "1",
+    "area": 120.5,
+    "price": 450000,
+    "status": "available",
+    "notes": "وحدة زاوية",
+    "created_at": "2026-05-20T16:29:44.675898+00:00",
+    "updated_at": "2026-05-20T16:29:44.675898+00:00"
+  },
+  {
+    "id": "e9547dc3-cf5b-49e6-86b1-f58c30adff22",
+    "project_id": "7407435b-16de-477a-b04e-66564f5b122c",
+    "unit_number": "B 01",
+    "floor": "2",
+    "area": 135,
+    "price": 500000,
+    "status": "reserved",
+    "notes": null,
+    "created_at": "2026-05-20T16:29:44.675898+00:00",
+    "updated_at": "2026-05-20T16:29:44.675898+00:00"
+  },
+  {
+    "id": "74fa1f2b-e6aa-478a-b8ec-897e39e23054",
+    "project_id": "7407435b-16de-477a-b04e-66564f5b122c",
+    "unit_number": "B 02",
+    "floor": "2",
+    "area": 125,
+    "price": 470000,
+    "status": "sold",
+    "notes": "تم البيع نقداً",
+    "created_at": "2026-05-20T16:29:44.675898+00:00",
+    "updated_at": "2026-05-20T16:29:44.675898+00:00"
+  },
+  {
+    "id": "68d26a9f-27f7-4c4c-b93e-97705255cf7c",
+    "project_id": "7407435b-16de-477a-b04e-66564f5b122c",
+    "unit_number": "C 01",
+    "floor": "3",
+    "area": 150,
+    "price": 600000,
+    "status": "available",
+    "notes": "إطلالة مفتوحة",
+    "created_at": "2026-05-20T16:29:44.675898+00:00",
+    "updated_at": "2026-05-20T16:29:44.675898+00:00"
+  },
+  {
+    "id": "236d7130-26d7-44f2-ae32-18998ab19abd",
+    "project_id": "7407435b-16de-477a-b04e-66564f5b122c",
+    "unit_number": "D 01",
+    "floor": null,
+    "area": null,
+    "price": null,
+    "status": "available",
+    "notes": null,
+    "created_at": "2026-05-20T16:58:37.500901+00:00",
+    "updated_at": "2026-05-20T16:58:37.500901+00:00"
+  },
+  {
+    "id": "b3597f56-c646-42f2-af55-a0dea305a929",
+    "project_id": "7407435b-16de-477a-b04e-66564f5b122c",
+    "unit_number": "A 03",
+    "floor": "1",
+    "area": 110,
+    "price": 420000,
+    "status": "sold",
+    "notes": null,
+    "created_at": "2026-05-20T16:29:44.675898+00:00",
+    "updated_at": "2026-05-20T17:04:08.34246+00:00"
+  },
+  {
+    "id": "39ea7fe8-6ab8-43fa-abfe-e70f6353a081",
+    "project_id": "7407435b-16de-477a-b04e-66564f5b122c",
+    "unit_number": "A 01",
+    "floor": "1",
+    "area": 160,
+    "price": 4000000,
+    "status": "sold",
+    "notes": "ناصية شارع - دور اول",
+    "created_at": "2026-05-20T16:20:07.018793+00:00",
+    "updated_at": "2026-05-21T12:48:08.984913+00:00"
+  }
+]

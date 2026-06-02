@@ -1,0 +1,37 @@
+[
+  {
+    "id": "7407435b-16de-477a-b04e-66564f5b122c",
+    "name_ar": "الوادي",
+    "name_en": "El-Waddi",
+    "description": "الوادي مجتمع سكني",
+    "logo": null,
+    "color": "#ea2a2a",
+    "project_link": null,
+    "total_units": 20,
+    "created_at": "2026-05-19T15:13:56.996981+00:00",
+    "updated_at": "2026-05-21T12:47:41.309782+00:00",
+    "images": [
+      "https://hulilcpndpdtvcryykqx.supabase.co/storage/v1/object/public/project-images/projects/95429d9d-a653-42b5-af67-6cb103d4b300.png"
+    ],
+    "spaces": [
+      {
+        "area": 1000,
+        "name": "حدائق",
+        "notes": ""
+      },
+      {
+        "area": 4999.97,
+        "name": "مباني ",
+        "notes": ""
+      },
+      {
+        "area": 3000,
+        "name": "مولات",
+        "notes": ""
+      }
+    ],
+    "city": "القاهرة",
+    "latitude": 30.06263,
+    "longitude": 31.24967
+  }
+]

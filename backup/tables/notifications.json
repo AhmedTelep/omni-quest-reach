@@ -1,0 +1,239 @@
+[
+  {
+    "id": "10bc12c5-4582-41c9-999e-5635383ae6d5",
+    "user_id": "cb37d4ed-122c-4089-8f97-dac22d7fd783",
+    "type": "announcement",
+    "title": "تهنئة عيد الأضحي ",
+    "body": "كل عام وانتم بخير اعاده الله علينا وعليكم بالخير واليمن والبركات.",
+    "link": "/notifications",
+    "metadata": {
+      "announcement_id": "d3f5059f-7b73-4a4c-91fe-a2bc4da0e874"
+    },
+    "is_read": false,
+    "created_at": "2026-05-25T13:24:09.291705+00:00"
+  },
+  {
+    "id": "4366269e-a46b-480b-ae34-8d98a4cef1ba",
+    "user_id": "19687fdb-28af-4413-a7ce-35d3e2fb3939",
+    "type": "announcement",
+    "title": "تهنئة عيد الأضحي ",
+    "body": "كل عام وانتم بخير اعاده الله علينا وعليكم بالخير واليمن والبركات.",
+    "link": "/notifications",
+    "metadata": {
+      "announcement_id": "d3f5059f-7b73-4a4c-91fe-a2bc4da0e874"
+    },
+    "is_read": true,
+    "created_at": "2026-05-25T13:24:09.291705+00:00"
+  },
+  {
+    "id": "2a7b4d48-71b3-454f-9dcc-2afd9da64811",
+    "user_id": "19687fdb-28af-4413-a7ce-35d3e2fb3939",
+    "type": "installment_new",
+    "title": "قسط جديد",
+    "body": "تم إضافة قسط بقيمة 375000.00 ج.م",
+    "link": "/my-installments",
+    "metadata": {
+      "installment_id": "c52f6045-1b0d-4035-9bfb-d7451d216b35"
+    },
+    "is_read": false,
+    "created_at": "2026-05-25T18:20:42.188781+00:00"
+  },
+  {
+    "id": "54fb8b4e-63e5-4eb6-8fc3-5e5eb8488098",
+    "user_id": "19687fdb-28af-4413-a7ce-35d3e2fb3939",
+    "type": "installment_new",
+    "title": "قسط جديد",
+    "body": "تم إضافة قسط بقيمة 375000.00 ج.م",
+    "link": "/my-installments",
+    "metadata": {
+      "installment_id": "f02669db-d42a-4ae5-a1d0-3f1b87823e6e"
+    },
+    "is_read": false,
+    "created_at": "2026-05-25T18:20:42.188781+00:00"
+  },
+  {
+    "id": "8ab451c5-8aff-4872-a5c8-89c72f11d2ba",
+    "user_id": "19687fdb-28af-4413-a7ce-35d3e2fb3939",
+    "type": "installment_new",
+    "title": "قسط جديد",
+    "body": "تم إضافة قسط بقيمة 375000.00 ج.م",
+    "link": "/my-installments",
+    "metadata": {
+      "installment_id": "c41b31cf-2c98-44de-a63a-7598f0f566d6"
+    },
+    "is_read": false,
+    "created_at": "2026-05-25T18:20:42.188781+00:00"
+  },
+  {
+    "id": "60bd9f60-e3ea-4c12-a703-2de0eb739b92",
+    "user_id": "19687fdb-28af-4413-a7ce-35d3e2fb3939",
+    "type": "installment_new",
+    "title": "قسط جديد",
+    "body": "تم إضافة قسط بقيمة 375000.00 ج.م",
+    "link": "/my-installments",
+    "metadata": {
+      "installment_id": "cdd35e1d-b8b1-40ac-8cba-f961fdaef907"
+    },
+    "is_read": false,
+    "created_at": "2026-05-25T18:20:42.188781+00:00"
+  },
+  {
+    "id": "a90c0fde-5d76-4989-ba7f-bcdc4b6cca7e",
+    "user_id": "19687fdb-28af-4413-a7ce-35d3e2fb3939",
+    "type": "installment_new",
+    "title": "قسط جديد",
+    "body": "تم إضافة قسط بقيمة 375000.00 ج.م",
+    "link": "/my-installments",
+    "metadata": {
+      "installment_id": "cd75c367-c6c1-4019-a712-35bb4983fcc8"
+    },
+    "is_read": false,
+    "created_at": "2026-05-25T18:20:42.188781+00:00"
+  },
+  {
+    "id": "04deb3ae-3311-4f8a-8578-0544105f2172",
+    "user_id": "19687fdb-28af-4413-a7ce-35d3e2fb3939",
+    "type": "installment_new",
+    "title": "قسط جديد",
+    "body": "تم إضافة قسط بقيمة 375000.00 ج.م",
+    "link": "/my-installments",
+    "metadata": {
+      "installment_id": "d3d9e150-9801-4d33-9a4c-9822e628e3c2"
+    },
+    "is_read": false,
+    "created_at": "2026-05-25T18:20:42.188781+00:00"
+  },
+  {
+    "id": "b054c479-a5ae-43ca-800d-5dcd8dd40a57",
+    "user_id": "19687fdb-28af-4413-a7ce-35d3e2fb3939",
+    "type": "installment_new",
+    "title": "قسط جديد",
+    "body": "تم إضافة قسط بقيمة 375000.00 ج.م",
+    "link": "/my-installments",
+    "metadata": {
+      "installment_id": "5ab8df97-c68a-4ccd-8d06-ad9bc0e59e44"
+    },
+    "is_read": false,
+    "created_at": "2026-05-25T18:20:42.188781+00:00"
+  },
+  {
+    "id": "151c6f15-431e-487d-9401-b35a7c7b5777",
+    "user_id": "19687fdb-28af-4413-a7ce-35d3e2fb3939",
+    "type": "installment_new",
+    "title": "قسط جديد",
+    "body": "تم إضافة قسط بقيمة 375000.00 ج.م",
+    "link": "/my-installments",
+    "metadata": {
+      "installment_id": "c66e2edf-c19d-4671-a3d1-7b084eaf0e72"
+    },
+    "is_read": false,
+    "created_at": "2026-05-25T18:20:42.188781+00:00"
+  },
+  {
+    "id": "4a16a4ee-ff5d-41ec-a754-66459354c2df",
+    "user_id": "19687fdb-28af-4413-a7ce-35d3e2fb3939",
+    "type": "installment_new",
+    "title": "قسط جديد",
+    "body": "تم إضافة قسط بقيمة 375000.00 ج.م",
+    "link": "/my-installments",
+    "metadata": {
+      "installment_id": "cb18e560-2fa8-4d16-bea2-b96115ef278d"
+    },
+    "is_read": false,
+    "created_at": "2026-05-25T18:20:42.188781+00:00"
+  },
+  {
+    "id": "9d45db68-ec8d-4107-a438-94e86841bc9c",
+    "user_id": "19687fdb-28af-4413-a7ce-35d3e2fb3939",
+    "type": "installment_new",
+    "title": "قسط جديد",
+    "body": "تم إضافة قسط بقيمة 375000.00 ج.م",
+    "link": "/my-installments",
+    "metadata": {
+      "installment_id": "18577849-6c14-4b8c-8b19-2884a3bc0d82"
+    },
+    "is_read": false,
+    "created_at": "2026-05-25T18:20:42.188781+00:00"
+  },
+  {
+    "id": "a5d07e2a-ed31-4bef-b38f-c5b3d30e03d8",
+    "user_id": "19687fdb-28af-4413-a7ce-35d3e2fb3939",
+    "type": "installment_new",
+    "title": "قسط جديد",
+    "body": "تم إضافة قسط بقيمة 375000.00 ج.م",
+    "link": "/my-installments",
+    "metadata": {
+      "installment_id": "470c9b72-eca4-4f12-937d-d09c817eee3c"
+    },
+    "is_read": false,
+    "created_at": "2026-05-25T18:20:42.188781+00:00"
+  },
+  {
+    "id": "78cc1a5a-a3a9-4d14-82e3-6ce4e339e16a",
+    "user_id": "19687fdb-28af-4413-a7ce-35d3e2fb3939",
+    "type": "installment_new",
+    "title": "قسط جديد",
+    "body": "تم إضافة قسط بقيمة 375000.00 ج.م",
+    "link": "/my-installments",
+    "metadata": {
+      "installment_id": "7d27eaaa-a315-4bc2-bd3e-f396739c9f09"
+    },
+    "is_read": true,
+    "created_at": "2026-05-25T18:20:42.188781+00:00"
+  },
+  {
+    "id": "4edd4768-d559-4b7a-ac8e-12e554e9d9a1",
+    "user_id": "2d8477a5-1061-4df9-971d-d623cbb78153",
+    "type": "installment_pending_review",
+    "title": "إيصال جديد بانتظار التأكيد",
+    "body": "الساكن AhmedTelep رفع إيصال قسط بقيمة 375000.00",
+    "link": "/residents/8dce0239-3875-48a7-ad2e-0c5f9dbb6e8f#inst-c52f6045-1b0d-4035-9bfb-d7451d216b35",
+    "metadata": {
+      "resident_id": "8dce0239-3875-48a7-ad2e-0c5f9dbb6e8f",
+      "installment_id": "c52f6045-1b0d-4035-9bfb-d7451d216b35"
+    },
+    "is_read": false,
+    "created_at": "2026-05-25T20:55:44.63958+00:00"
+  },
+  {
+    "id": "9972604b-0e1d-4000-98d1-e72a5775d2a6",
+    "user_id": "81ec800b-69b2-434e-83d5-bd1096cc3d37",
+    "type": "installment_pending_review",
+    "title": "إيصال جديد بانتظار التأكيد",
+    "body": "الساكن AhmedTelep رفع إيصال قسط بقيمة 375000.00",
+    "link": "/residents/8dce0239-3875-48a7-ad2e-0c5f9dbb6e8f#inst-c52f6045-1b0d-4035-9bfb-d7451d216b35",
+    "metadata": {
+      "resident_id": "8dce0239-3875-48a7-ad2e-0c5f9dbb6e8f",
+      "installment_id": "c52f6045-1b0d-4035-9bfb-d7451d216b35"
+    },
+    "is_read": false,
+    "created_at": "2026-05-25T20:55:44.63958+00:00"
+  },
+  {
+    "id": "ed470727-db43-466a-b2b9-0bca1e4c7d61",
+    "user_id": "8d9cc456-d0ba-409b-b3de-5282bc6fb798",
+    "type": "installment_pending_review",
+    "title": "إيصال جديد بانتظار التأكيد",
+    "body": "الساكن AhmedTelep رفع إيصال قسط بقيمة 375000.00",
+    "link": "/residents/8dce0239-3875-48a7-ad2e-0c5f9dbb6e8f#inst-c52f6045-1b0d-4035-9bfb-d7451d216b35",
+    "metadata": {
+      "resident_id": "8dce0239-3875-48a7-ad2e-0c5f9dbb6e8f",
+      "installment_id": "c52f6045-1b0d-4035-9bfb-d7451d216b35"
+    },
+    "is_read": true,
+    "created_at": "2026-05-25T20:55:44.63958+00:00"
+  },
+  {
+    "id": "2a06b7a1-e40b-4ff0-997a-f81f57a8bad4",
+    "user_id": "19687fdb-28af-4413-a7ce-35d3e2fb3939",
+    "type": "installment_confirmed",
+    "title": "تم تأكيد قسطك",
+    "body": "تم تأكيد دفع القسط بقيمة 375000.00 ج.م",
+    "link": "/my-installments#inst-c52f6045-1b0d-4035-9bfb-d7451d216b35",
+    "metadata": {
+      "installment_id": "c52f6045-1b0d-4035-9bfb-d7451d216b35"
+    },
+    "is_read": true,
+    "created_at": "2026-05-25T22:02:47.31201+00:00"
+  }
+]
