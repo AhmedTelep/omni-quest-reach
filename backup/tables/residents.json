@@ -1,0 +1,67 @@
+[
+  {
+    "id": "715340f8-3cbe-4192-b7e8-32329b23da79",
+    "user_id": null,
+    "project_id": "7407435b-16de-477a-b04e-66564f5b122c",
+    "unit_number": "A 02",
+    "name": "أحمد محمد",
+    "phone": "0500000001",
+    "unit_link": null,
+    "unit_price": 450000,
+    "is_active": true,
+    "created_at": "2026-05-20T16:29:44.675898+00:00",
+    "updated_at": "2026-05-20T16:29:44.675898+00:00"
+  },
+  {
+    "id": "80b4ae81-e3c8-4aa5-8d3a-689e958b4205",
+    "user_id": null,
+    "project_id": "7407435b-16de-477a-b04e-66564f5b122c",
+    "unit_number": "B 01",
+    "name": "سارة علي",
+    "phone": "0500000002",
+    "unit_link": null,
+    "unit_price": 500000,
+    "is_active": true,
+    "created_at": "2026-05-20T16:29:44.675898+00:00",
+    "updated_at": "2026-05-20T16:29:44.675898+00:00"
+  },
+  {
+    "id": "abbdd75f-30f2-4d60-bc86-ac82cc4c1696",
+    "user_id": null,
+    "project_id": "7407435b-16de-477a-b04e-66564f5b122c",
+    "unit_number": "B 02",
+    "name": "خالد إبراهيم",
+    "phone": "0500000003",
+    "unit_link": null,
+    "unit_price": 470000,
+    "is_active": true,
+    "created_at": "2026-05-20T16:29:44.675898+00:00",
+    "updated_at": "2026-05-20T16:29:44.675898+00:00"
+  },
+  {
+    "id": "a877e38e-c41f-4d3f-a80b-6630d0eabfe1",
+    "user_id": "cb37d4ed-122c-4089-8f97-dac22d7fd783",
+    "project_id": "7407435b-16de-477a-b04e-66564f5b122c",
+    "unit_number": "A 03",
+    "name": "Ahmed Telep",
+    "phone": "1023844328",
+    "unit_link": null,
+    "unit_price": 420000,
+    "is_active": true,
+    "created_at": "2026-05-20T17:04:07.460291+00:00",
+    "updated_at": "2026-05-20T17:04:07.460291+00:00"
+  },
+  {
+    "id": "8dce0239-3875-48a7-ad2e-0c5f9dbb6e8f",
+    "user_id": "19687fdb-28af-4413-a7ce-35d3e2fb3939",
+    "project_id": "7407435b-16de-477a-b04e-66564f5b122c",
+    "unit_number": "A 01",
+    "name": "AhmedTelep",
+    "phone": "01023844328",
+    "unit_link": null,
+    "unit_price": 4000000,
+    "is_active": true,
+    "created_at": "2026-05-21T12:48:08.617128+00:00",
+    "updated_at": "2026-05-25T17:20:59.355534+00:00"
+  }
+]

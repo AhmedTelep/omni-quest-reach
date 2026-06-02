@@ -1,0 +1,19 @@
+[
+  {
+    "id": "385fb735-b5f6-4356-bcb5-47a3f4011c9d",
+    "resident_id": "8dce0239-3875-48a7-ad2e-0c5f9dbb6e8f",
+    "project_id": "7407435b-16de-477a-b04e-66564f5b122c",
+    "total_amount": 4500000,
+    "count": 12,
+    "frequency": "monthly",
+    "start_date": "2026-05-25",
+    "description": "A-01 First floor",
+    "created_by": "8d9cc456-d0ba-409b-b3de-5282bc6fb798",
+    "created_at": "2026-05-25T18:20:42.08583+00:00",
+    "late_fee_type": "percent",
+    "late_fee_value": 5,
+    "late_fee_grace_days": 15,
+    "late_fee_recurrence": "monthly",
+    "reminder_days_before": 10
+  }
+]
